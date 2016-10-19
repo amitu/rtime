@@ -52,7 +52,7 @@ func elmPage(w http.ResponseWriter, _ *http.Request) {
 					<link href="/static/style.css" rel="stylesheet"
 					      type="text/css" />
 				</head>
-				<body><script src="/static/elm.js"></script></body>
+				<body data-csrf="asd"><script src="/static/elm.js"></script></body>
 			</html>
 		`),
 	)
