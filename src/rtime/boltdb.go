@@ -23,7 +23,7 @@ func MustInitWriter(pth string) {
 }
 
 func Write(data []byte, p *packet) {
-	boltdb.Update(func(tx *bolt.Tx) error {
+	err := boltdb.Update(func(tx *bolt.Tx) error {
 		app, err := tx.CreateBucketIfNotExists([]byte(p.App))
 		if err != nil {
 			LOGGER.Error("cant_create_app_bucket", "err", errors.ErrorStack(err))
@@ -55,6 +55,7 @@ func Write(data []byte, p *packet) {
 		}
 
 		ts := []byte(time.Now().String())
+		LOGGER.Debug("key", "ts", string(ts))
 
 		b := make([]byte, 8)
 		binary.LittleEndian.PutUint64(b, p.OTime)
@@ -73,4 +74,27 @@ func Write(data []byte, p *packet) {
 
 		return nil
 	})
+
+	if err != nil {
+		LOGGER.Error("boltd_update_failed", "err", errors.ErrorStack(err))
+	}
 }
+
+func ListApps() (apps []string, err error) {
+	err = errors.Trace(
+		boltdb.View(func(tx *bolt.Tx) error {
+			return errors.Trace(
+				tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
+					apps = append(apps, string(name))
+					return nil
+				}),
+			)
+		}),
+	)
+	return
+}
+
+func ListViews(app string) ([]string, error)                       { return nil, nil }
+func ListHosts(app, view string) ([]string, error)                 { return nil, nil }
+func Timings(app, view, host, start, end string) ([]uint64, error) { return nil, nil }
+func JSON(app, view, host, ts string) ([]byte, error)              { return nil, nil }
