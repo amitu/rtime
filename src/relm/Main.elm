@@ -64,7 +64,11 @@ urlUpdate result imodel =
     in
         case Debug.log "urlUpdate" route of
             Routing.IndexRoute ->
-                ( model, Ports.title "Home" )
+                let
+                    ( imodel, icmd ) =
+                        Index.update Index.Viewed model.index
+                in
+                    ( { model | index = imodel }, Cmd.map IndexMsg icmd )
 
             Routing.NotFoundRoute ->
                 ( model, Ports.title "page not found" )
@@ -72,7 +76,13 @@ urlUpdate result imodel =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        IndexMsg msg ->
+            let
+                ( imodel, icmd ) =
+                    Index.update msg model.index
+            in
+                ( { model | index = imodel }, Cmd.map IndexMsg icmd )
 
 
 subscriptions : Model -> Sub Msg
