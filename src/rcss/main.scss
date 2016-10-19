@@ -1,0 +1,6 @@
+@import "settings";
+@import "foundation";
+$fa-font-path:        "./fonts" !default;
+@import "font-awesome";
+
+@include foundation-everything(true);

@@ -22,3 +22,13 @@ _testmain.go
 *.exe
 *.test
 *.prof
+vendor/src/github.com/boltdb/bolt/
+.autoenv.zsh
+src/relm/elm-stuff
+src/rtime/static/elm.js
+bin
+src/rcss/Font-Awesome
+src/rcss/foundation-sites
+.doit.db
+src/rtime/static/style.css
+vendor/src/github.com/GeertJohan/go.rice/
