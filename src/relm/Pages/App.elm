@@ -33,7 +33,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "P.App" msg of
         Viewed app ->
-            ( { model | views = RD.Loading, app = app }
+            ( { model | views = RD.Loading, app = Http.uriDecode app }
             , Cmd.batch
                 [ Apps.getViewList app ViewsFailed ViewsFetched
                 , Ports.title app
@@ -50,7 +50,14 @@ update msg model =
 liview : Model -> String -> Html Msg
 liview model view =
     li []
-        [ a [ href ("#app/" ++ model.app ++ "/" ++ view) ]
+        [ a
+            [ href
+                ("#view/"
+                    ++ (Http.uriEncode model.app)
+                    ++ "/"
+                    ++ (Http.uriEncode view)
+                )
+            ]
             [ text (model.app ++ " -> " ++ view) ]
         ]
 

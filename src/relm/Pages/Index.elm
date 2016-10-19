@@ -48,7 +48,7 @@ update msg model =
 
 liview : String -> Html Msg
 liview app =
-    li [] [ a [ href ("#app/" ++ app) ] [ text app ] ]
+    li [] [ a [ href ("#app/" ++ (Http.uriEncode app)) ] [ text app ] ]
 
 
 view : Model -> Html Msg

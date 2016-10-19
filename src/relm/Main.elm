@@ -13,6 +13,7 @@ import Routing
 import Ports
 import Pages.Index as Index
 import Pages.App as App
+import Pages.View as View
 
 
 type alias Flags =
@@ -23,6 +24,7 @@ type alias Flags =
 type Msg
     = IndexMsg Index.Msg
     | AppMsg App.Msg
+    | ViewMsg View.Msg
 
 
 type alias Model =
@@ -30,6 +32,7 @@ type alias Model =
     , route : Routing.Route
     , index : Index.Model
     , app : App.Model
+    , view : View.Model
     }
 
 
@@ -39,6 +42,7 @@ initialModel route csrf =
     , route = route
     , index = Index.init
     , app = App.init
+    , view = View.init
     }
 
 
@@ -81,6 +85,13 @@ urlUpdate result imodel =
                 in
                     ( { model | app = imodel }, Cmd.map AppMsg icmd )
 
+            Routing.ViewRoute app view ->
+                let
+                    ( imodel, icmd ) =
+                        View.update (View.Viewed app view) model.view
+                in
+                    ( { model | view = imodel }, Cmd.map ViewMsg icmd )
+
             Routing.NotFoundRoute ->
                 ( model, Ports.title "page not found" )
 
@@ -102,6 +113,13 @@ update msg model =
             in
                 ( { model | app = imodel }, Cmd.map AppMsg icmd )
 
+        ViewMsg msg ->
+            let
+                ( imodel, icmd ) =
+                    View.update msg model.view
+            in
+                ( { model | view = imodel }, Cmd.map ViewMsg icmd )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -120,6 +138,10 @@ view model =
                 Routing.AppRoute _ ->
                     App.view model.app
                         |> Html.App.map AppMsg
+
+                Routing.ViewRoute _ _ ->
+                    View.view model.view
+                        |> Html.App.map ViewMsg
 
                 Routing.NotFoundRoute ->
                     text "page not found"
