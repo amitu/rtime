@@ -61,7 +61,7 @@ func SetLoggingVerbosity(level int) {
 	)
 
 	LOGGER.Info(
-		"logger initialized", log15.Ctx{
+		"logger_initialized", log15.Ctx{
 			"logfile": logfile,
 			"pid":     os.Getpid(),
 			"level":   log15.Lvl(level).String(),

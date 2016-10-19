@@ -1,8 +1,8 @@
 package rtime
 
 import (
-	"net/http"
 	_ "expvar"
+	"net/http"
 	_ "net/http/pprof"
 
 	rice "github.com/GeertJohan/go.rice"
@@ -31,6 +31,6 @@ func ListenAndServe(listen string) {
 	http.Handle("/static/", staticServer)
 	http.HandleFunc("/", elmPage)
 
-	LOGGER.Info("starting http server", "listen", listen)
+	LOGGER.Info("http_server_starting", "listen", listen)
 	LOGGER.Error("server_done", "err", http.ListenAndServe(listen, nil))
 }
