@@ -13,11 +13,10 @@ type packet struct {
 	Host  string `json:"host"`
 	App   string `json:"app"`
 	Name  string `json:"name"`
-	OTime int    `json:"otime"`
+	OTime uint64 `json:"otime"`
 }
 
-func HandlePacket(p *packet, data []byte) {
-	LOGGER.Debug("udp_packet", "packet", string(data))
+func HandlePacket(data []byte, p *packet) {
 	p.Host = ""
 	p.App = ""
 	p.Name = ""
@@ -32,8 +31,7 @@ func HandlePacket(p *packet, data []byte) {
 		return
 	}
 
-	LOGGER.Debug("udp_packet_parsed", "packet", p)
-	return
+	Write(data, p)
 }
 
 func UDPListen(addr string) {
@@ -57,7 +55,7 @@ func UDPListen(addr string) {
 			continue
 		}
 
-		HandlePacket(opacket, obytes[:n])
+		HandlePacket(obytes[:n], opacket)
 
 		count += 1
 		bcount += int64(n)

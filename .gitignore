@@ -38,3 +38,4 @@ vendor/src/github.com/inconshreveable/log15/
 vendor/src/github.com/go-stack/stack/
 vendor/src/github.com/mattn/go-colorable/
 vendor/src/github.com/juju/errors/
+rtime.boltdb
