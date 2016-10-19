@@ -15,24 +15,24 @@ PORT = 6543
 
 
 class Message(object):
-    def __init__(self, server, app, name, otime, qtime=-1, rtime=-1, data=None):
-        self.server = server
+    def __init__(self, host, app, name, otime, qtime=-1, rtime=-1, data=None):
+        self.host = host
         self.app = app
         self.name = name
-        self.otime = otime
-        self.qtime = qtime
-        self.rtime = rtime
+        self.otime = int(otime)
+        self.qtime = int(qtime)
+        self.rtime = int(rtime)
         self.data = data if data is not None else {}
 
     def json(self):
-        j = json.dumps(self.__dict__, indent=4, sort_keys=True)
+        j = json.dumps(self.__dict__)
         print("json: ", j)
         return j
 
 
 def ping():
     msg = Message(
-        server = socket.gethostname(),
+        host = socket.gethostname(),
         app = os.path.basename(__file__),
         name = sys.argv[1],
         otime = sys.argv[2]

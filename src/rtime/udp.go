@@ -4,11 +4,35 @@ import (
 	"net"
 	"time"
 
+	"encoding/json"
+
 	"github.com/juju/errors"
 )
 
-func HandlePacket(packet []byte) {
-	LOGGER.Debug("udp_packet", "packet", string(packet))
+type packet struct {
+	Host  string `json:"host"`
+	App   string `json:"app"`
+	Name  string `json:"name"`
+	OTime int    `json:"otime"`
+}
+
+func HandlePacket(p *packet, data []byte) {
+	LOGGER.Debug("udp_packet", "packet", string(data))
+	p.Host = ""
+	p.App = ""
+	p.Name = ""
+	p.OTime = 0
+
+	err := json.Unmarshal(data, p)
+	if err != nil {
+		LOGGER.Warn(
+			"udp_packet_parse_failed", "err", errors.ErrorStack(err),
+			"packet", string(data),
+		)
+		return
+	}
+
+	LOGGER.Debug("udp_packet_parsed", "packet", p)
 	return
 }
 
@@ -23,21 +47,20 @@ func UDPListen(addr string) {
 
 	obytes := make([]byte, 64*1024)
 	start := time.Now()
-	var bcount, count time.Duration
+	var bcount, count int64
+	opacket := &packet{}
 
 	for {
-		buf := obytes
-		n, _, err := conn.ReadFrom(buf)
-
+		n, _, err := conn.ReadFrom(obytes)
 		if err != nil {
 			LOGGER.Warn("udp_read_failed", "err", errors.ErrorStack(err))
 			continue
 		}
 
-		HandlePacket(buf)
+		HandlePacket(opacket, obytes[:n])
 
 		count += 1
-		bcount += time.Duration(n)
+		bcount += int64(n)
 
 		now := time.Now()
 		diff := now.Sub(start)
