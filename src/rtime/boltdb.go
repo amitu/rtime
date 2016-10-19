@@ -80,6 +80,28 @@ func Write(data []byte, p *packet) {
 	}
 }
 
+func ListViews(appname string) (views []string, err error) {
+	err = errors.Trace(
+		boltdb.View(func(tx *bolt.Tx) error {
+			app := tx.Bucket([]byte(appname))
+			if app == nil {
+				LOGGER.Error("unknown_app", "app", appname)
+				return errors.New("unknown app")
+			}
+
+			return errors.Trace(
+				app.ForEach(func(name, value []byte) error {
+					if value == nil {
+						views = append(views, string(name))
+					}
+					return nil
+				}),
+			)
+		}),
+	)
+	return
+}
+
 func ListApps() (apps []string, err error) {
 	err = errors.Trace(
 		boltdb.View(func(tx *bolt.Tx) error {
@@ -93,8 +115,6 @@ func ListApps() (apps []string, err error) {
 	)
 	return
 }
-
-func ListViews(app string) ([]string, error)                       { return nil, nil }
 func ListHosts(app, view string) ([]string, error)                 { return nil, nil }
 func Timings(app, view, host, start, end string) ([]uint64, error) { return nil, nil }
 func JSON(app, view, host, ts string) ([]byte, error)              { return nil, nil }

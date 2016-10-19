@@ -58,7 +58,7 @@ func elmPage(w http.ResponseWriter, _ *http.Request) {
 	)
 }
 
-func appsPage(w http.ResponseWriter, _ *http.Request) {
+func appsAPI(w http.ResponseWriter, _ *http.Request) {
 	apps, err := ListApps()
 	if err != nil {
 		LOGGER.Error("list_app_failed", "err", errors.ErrorStack(err))
@@ -69,11 +69,29 @@ func appsPage(w http.ResponseWriter, _ *http.Request) {
 	respond(w, apps)
 }
 
+func viewsAPI(w http.ResponseWriter, r *http.Request) {
+	app := r.FormValue("app")
+	if app == "" {
+		reject(w, "app is required")
+		return
+	}
+
+	views, err := ListViews(app)
+	if err != nil {
+		LOGGER.Error("list_app_failed", "err", errors.ErrorStack(err))
+		reject(w, errors.ErrorStack(err))
+		return
+	}
+
+	respond(w, views)
+}
+
 func ListenAndServe(listen string) {
 	box := rice.MustFindBox("static")
 	staticServer := http.StripPrefix("/static/", http.FileServer(box.HTTPBox()))
 	http.Handle("/static/", staticServer)
-	http.HandleFunc("/apps", appsPage)
+	http.HandleFunc("/apps", appsAPI)
+	http.HandleFunc("/views", viewsAPI)
 	http.HandleFunc("/", elmPage)
 
 	LOGGER.Info("http_server_starting", "listen", listen)

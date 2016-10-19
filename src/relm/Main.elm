@@ -12,6 +12,7 @@ import Html exposing (Html, div, text)
 import Routing
 import Ports
 import Pages.Index as Index
+import Pages.App as App
 
 
 type alias Flags =
@@ -21,12 +22,14 @@ type alias Flags =
 
 type Msg
     = IndexMsg Index.Msg
+    | AppMsg App.Msg
 
 
 type alias Model =
     { csrf : String
     , route : Routing.Route
     , index : Index.Model
+    , app : App.Model
     }
 
 
@@ -35,6 +38,7 @@ initialModel route csrf =
     { csrf = csrf
     , route = route
     , index = Index.init
+    , app = App.init
     }
 
 
@@ -70,6 +74,13 @@ urlUpdate result imodel =
                 in
                     ( { model | index = imodel }, Cmd.map IndexMsg icmd )
 
+            Routing.AppRoute app ->
+                let
+                    ( imodel, icmd ) =
+                        App.update (App.Viewed app) model.app
+                in
+                    ( { model | app = imodel }, Cmd.map AppMsg icmd )
+
             Routing.NotFoundRoute ->
                 ( model, Ports.title "page not found" )
 
@@ -83,6 +94,13 @@ update msg model =
                     Index.update msg model.index
             in
                 ( { model | index = imodel }, Cmd.map IndexMsg icmd )
+
+        AppMsg msg ->
+            let
+                ( imodel, icmd ) =
+                    App.update msg model.app
+            in
+                ( { model | app = imodel }, Cmd.map AppMsg icmd )
 
 
 subscriptions : Model -> Sub Msg
@@ -98,6 +116,10 @@ view model =
                 Routing.IndexRoute ->
                     Index.view model.index
                         |> Html.App.map IndexMsg
+
+                Routing.AppRoute _ ->
+                    App.view model.app
+                        |> Html.App.map AppMsg
 
                 Routing.NotFoundRoute ->
                     text "page not found"
