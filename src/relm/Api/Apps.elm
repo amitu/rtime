@@ -2,8 +2,8 @@ module Api.Apps exposing (..)
 
 -- elm.core
 
-import Json.Decode as JD exposing (string, list, tuple2, int, float, (:=))
-import Json.Decode.Extra exposing ((|:))
+import Json.Decode as JD exposing (string, list, dict, tuple2, int, float, (:=))
+import Json.Decode.Extra exposing ((|:), date)
 import Http
 import Task
 import Date exposing (Date)
@@ -18,10 +18,7 @@ type alias View =
 
 
 type alias ViewData =
-    { hosts : List String
-    , timings : List ( Date, Int )
-    , start : Date
-    , end : Date
+    { timings : List Float
     }
 
 
@@ -30,18 +27,10 @@ fdate f =
     Ok (Date.fromTime f)
 
 
-date : JD.Decoder Date
-date =
-    JD.customDecoder float fdate
-
-
 viewdata : JD.Decoder ViewData
 viewdata =
     JD.succeed ViewData
-        |: ("hosts" := list string)
-        |: ("timings" := list (tuple2 (,) date int))
-        |: ("start" := date)
-        |: ("end" := date)
+        |: ("timings" := list float)
 
 
 getAppList : (Http.Error -> a) -> (List App -> a) -> Cmd a

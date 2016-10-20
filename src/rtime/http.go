@@ -1,14 +1,75 @@
 package rtime
 
 import (
+	"encoding/hex"
 	"encoding/json"
-	_ "expvar"
+	"expvar"
+	"fmt"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
+	"sync"
+	"time"
 
 	rice "github.com/GeertJohan/go.rice"
 	"github.com/juju/errors"
 )
+
+var (
+	cache = NewVDCache()
+)
+
+type VDCache struct {
+	cache map[string]*ViewData
+	sync.RWMutex
+}
+
+func (c *VDCache) String() string {
+	c.RLock()
+	defer c.RUnlock()
+
+	return fmt.Sprintf("%d", len(c.cache))
+}
+
+func (c *VDCache) Add(k string, vd *ViewData) {
+	c.Lock()
+	defer c.Unlock()
+
+	c.cache[k] = vd
+}
+
+func (c *VDCache) Cleanup() {
+	c.Lock()
+	defer c.Unlock()
+
+	list := []string{}
+
+	for k, rd := range c.cache {
+		if time.Since(rd.created) > time.Second*10*60 {
+			list = append(list, k)
+		}
+	}
+
+	for _, k := range list {
+		delete(c.cache, k)
+	}
+
+	if len(list) > 0 {
+		LOGGER.Info("cleaner_collected", "count", len(list))
+	} else {
+		LOGGER.Debug("cleaner_idled")
+	}
+}
+
+func NewVDCache() *VDCache {
+	return &VDCache{
+		cache: make(map[string]*ViewData),
+	}
+}
+
+func init() {
+	expvar.Publish("VDCache_count", cache)
+}
 
 type EResult struct {
 	Result interface{} `json:"result"`
@@ -86,12 +147,78 @@ func viewsAPI(w http.ResponseWriter, r *http.Request) {
 	respond(w, views)
 }
 
+func UniqueID() string {
+	u := make([]byte, 16)
+	_, err := rand.Read(u)
+	if err != nil {
+		LOGGER.Error("rand_failed", "err", errors.ErrorStack(err))
+	}
+	return hex.EncodeToString(u)
+}
+
+func viewAPI(w http.ResponseWriter, r *http.Request) {
+	sid := ""
+
+	if c, err := r.Cookie("sessionid"); err != nil {
+		sid = UniqueID()
+		http.SetCookie(w, &http.Cookie{Name: "sessionid", Value: sid, Path: "/"})
+	} else {
+		sid = c.Value
+	}
+
+	app := r.FormValue("app")
+	if app == "" {
+		reject(w, "app is required")
+		return
+	}
+
+	view := r.FormValue("view")
+	if view == "" {
+		reject(w, "view is required")
+		return
+	}
+
+	host := r.FormValue("host")
+
+	start := r.FormValue("start")
+	if view == "" {
+		reject(w, "start is required")
+		return
+	}
+
+	end := r.FormValue("end")
+	if view == "" {
+		reject(w, "end is required")
+		return
+	}
+
+	rd, err := GetViewData(app, view, host, start, end)
+	if err != nil {
+		LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
+		reject(w, errors.ErrorStack(err))
+		return
+	}
+
+	respond(w, rd)
+	cache.Add(sid, rd)
+}
+
+func cleaner() {
+	for {
+		time.Sleep(time.Second * 60)
+		cache.Cleanup()
+	}
+}
+
 func ListenAndServe(listen string) {
+	go cleaner()
+
 	box := rice.MustFindBox("static")
 	staticServer := http.StripPrefix("/static/", http.FileServer(box.HTTPBox()))
 	http.Handle("/static/", staticServer)
 	http.HandleFunc("/apps", appsAPI)
 	http.HandleFunc("/views", viewsAPI)
+	http.HandleFunc("/view", viewAPI)
 	http.HandleFunc("/", elmPage)
 
 	LOGGER.Info("http_server_starting", "listen", listen)
