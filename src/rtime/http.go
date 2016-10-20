@@ -31,11 +31,16 @@ func (c *VDCache) String() string {
 	return fmt.Sprintf("%d", len(c.cache))
 }
 
-func (c *VDCache) Add(k string, vd *ViewData) {
+func (c *VDCache) Add(vd *ViewData) {
+	if vd == nil {
+		return
+	}
+
 	c.Lock()
 	defer c.Unlock()
 
-	c.cache[k] = vd
+	vd.created = time.Now()
+	c.cache[vd.ID] = vd
 }
 
 func (c *VDCache) Cleanup() {
@@ -157,15 +162,6 @@ func UniqueID() string {
 }
 
 func viewAPI(w http.ResponseWriter, r *http.Request) {
-	sid := ""
-
-	if c, err := r.Cookie("sessionid"); err != nil {
-		sid = UniqueID()
-		http.SetCookie(w, &http.Cookie{Name: "sessionid", Value: sid, Path: "/"})
-	} else {
-		sid = c.Value
-	}
-
 	app := r.FormValue("app")
 	if app == "" {
 		reject(w, "app is required")
@@ -200,7 +196,7 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, rd)
-	cache.Add(sid, rd)
+	cache.Add(rd)
 }
 
 func cleaner() {

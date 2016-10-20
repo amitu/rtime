@@ -118,6 +118,7 @@ func ListApps() (apps []string, err error) {
 
 type ViewData struct {
 	Timings []float32 `json:"timings"`
+	ID      string    `json:"id"`
 	ids     []string  // not exported to clients
 	created time.Time // not exported
 }
@@ -126,6 +127,4 @@ func GetViewData(app, view, host, start, end string) (*ViewData, error) {
 	return nil, nil
 }
 
-func ListHosts(app, view string) ([]string, error)                 { return nil, nil }
-func Timings(app, view, host, start, end string) ([]uint64, error) { return nil, nil }
-func JSON(app, view, host, ts string) ([]byte, error)              { return nil, nil }
+func JSON(id string) ([]byte, error) { return nil, nil }
