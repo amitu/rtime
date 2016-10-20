@@ -56,7 +56,7 @@ func Write(data []byte, p *packet) {
 			return errors.Trace(err)
 		}
 
-		ts := []byte(time.Now().String())
+		ts := []byte(time.Now().Format("2006-01-02T15:04:05.999999"))
 		LOGGER.Debug("key", "ts", string(ts))
 
 		b := make([]byte, 8)
@@ -74,6 +74,7 @@ func Write(data []byte, p *packet) {
 			return errors.Trace(err)
 		}
 
+		LOGGER.Debug("inserted", "id", string(ts))
 		return nil
 	})
 
@@ -205,25 +206,39 @@ func GetViewData(
 }
 
 func diget(ids []string, timings []uint64, floor, ceiling int) []uint16 {
+	LOGGER.Info("digest", "ids", ids, "timings", timings)
 	return nil
 }
 
 func process_host(
 	hostb *bolt.Bucket, ids []string, timings []uint64, start, end string,
 ) ([]string, []uint64, error) {
-	err := hostb.ForEach(func(name, value []byte) error {
-		if value == nil {
-			// should never happen
-			return nil
+
+	timingsb := hostb.Bucket([]byte("timings"))
+	if timingsb == nil {
+		LOGGER.Warn("no timings bucket")
+		return ids, timings, nil
+	}
+
+	c := timingsb.Cursor()
+
+	LOGGER.Debug("process_host", "start", start, "end", end)
+	for k, v := c.Seek([]byte(start)); true; k, v = c.Next() {
+		sk := string(k)
+		if sk > end || sk == "" {
+			break
 		}
 
-		ids = append(ids, string(name))
-		timings = append(timings, binary.LittleEndian.Uint64(value))
+		if v == nil {
+			// should never happen
+			continue
+		}
 
-		return nil
-	})
+		ids = append(ids, sk)
+		timings = append(timings, binary.LittleEndian.Uint64(v))
+	}
 
-	return ids, timings, errors.Trace(err)
+	return ids, timings, nil
 }
 
 func JSON(id string) ([]byte, error) { return nil, nil }

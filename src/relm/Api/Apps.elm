@@ -9,6 +9,12 @@ import Task
 import Date exposing (Date)
 
 
+-- extra
+
+import Date.Extra.Format as DE
+import Date.Extra.Config.Config_en_us as English
+
+
 type alias App =
     String
 
@@ -46,6 +52,11 @@ getViewList app failed success =
         |> Task.perform failed success
 
 
+fdate : Date -> String
+fdate d =
+    DE.format English.config DE.isoMsecFormat d
+
+
 getViewData :
     App
     -> View
@@ -62,8 +73,8 @@ getViewData app view start end floor ceiling failed succeed =
             "/view"
             [ ( "app", app )
             , ( "view", view )
-            , ( "start", (toString <| Date.toTime start) )
-            , ( "end", (toString <| Date.toTime end) )
+            , ( "start", (fdate start) )
+            , ( "end", (fdate end) )
             , ( "floor", (toString floor) )
             , ( "ceiling", (toString ceiling) )
             ]
