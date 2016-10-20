@@ -11,20 +11,12 @@ import (
 
 type CodeWriter struct {
 	code int
-	w    http.ResponseWriter
-}
-
-func (c *CodeWriter) Header() http.Header {
-	return c.w.Header()
-}
-
-func (c *CodeWriter) Write(b []byte) (int, error) {
-	return c.w.Write(b)
+	http.ResponseWriter
 }
 
 func (c *CodeWriter) WriteHeader(code int) {
 	c.code = code
-	c.w.WriteHeader(code)
+	c.ResponseWriter.WriteHeader(code)
 }
 
 func Midddleware(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +25,7 @@ func Midddleware(w http.ResponseWriter, r *http.Request) {
 		clientIP = clientIP[:colon]
 	}
 
-	w2 := &CodeWriter{w: w, code: 200}
+	w2 := &CodeWriter{200, w}
 
 	start := time.Now()
 	logger := LOGGER.New(
