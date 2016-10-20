@@ -1,11 +1,18 @@
 module Pages.View exposing (..)
 
+-- elm.core
+
 import Html exposing (Html, text, ul, li, a)
 import Date
 import RemoteData as RD
 import Http
 import Basics.Extra exposing (never)
 import Task
+
+
+-- extra
+
+import Date.Extra.Period as DP
 
 
 -- ours
@@ -53,7 +60,7 @@ update msg model =
             , (Apps.getViewData
                 model.app
                 model.view
-                date
+                (DP.add DP.Minute -10 date)
                 date
                 0
                 0
