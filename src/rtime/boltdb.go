@@ -2,6 +2,8 @@ package rtime
 
 import (
 	"encoding/binary"
+	"encoding/hex"
+	"math/rand"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -116,9 +118,18 @@ func ListApps() (apps []string, err error) {
 	return
 }
 
+func UniqueID() string {
+	u := make([]byte, 16)
+	_, err := rand.Read(u)
+	if err != nil {
+		LOGGER.Error("rand_failed", "err", errors.ErrorStack(err))
+	}
+	return hex.EncodeToString(u)
+}
+
 type ViewData struct {
-	Timings []int16   `json:"timings"`
-	ID      string    `json:"id"`
+	timings []uint16
+	id      string
 	ids     []string  // not exported to clients
 	created time.Time // not exported
 }
@@ -126,8 +137,8 @@ type ViewData struct {
 func GetViewData(
 	app, view, host, start, end string, floor, ceiling int,
 ) (*ViewData, error) {
-	ids := make([]string, 1024)
-	timings := make([]int16, 1024)
+	ids := []string{}
+	timings := []uint64{}
 
 	err := errors.Trace(
 		boltdb.View(func(tx *bolt.Tx) error {
@@ -149,11 +160,14 @@ func GetViewData(
 						// should never happen
 						return nil
 					}
-					return errors.Trace(
-						process_host(
-							viewb.Bucket(name), ids, timings, start, end,
-						),
+
+					var err error
+
+					ids, timings, err = process_host(
+						viewb.Bucket(name), ids, timings, start, end,
 					)
+
+					return errors.Trace(err)
 				})
 
 				if err != nil {
@@ -167,7 +181,11 @@ func GetViewData(
 					)
 					return errors.New("unknown host")
 				}
-				return errors.Trace(process_host(hostb, ids, timings, start, end))
+
+				var err error
+				ids, timings, err = process_host(hostb, ids, timings, start, end)
+
+				return errors.Trace(err)
 			}
 
 			return nil
@@ -179,21 +197,33 @@ func GetViewData(
 	}
 
 	return &ViewData{
-		Timings: diget(ids, timings, floor, ceiling),
+		timings: diget(ids, timings, floor, ceiling),
 		ids:     ids,
-		ID:      UniqueID(),
+		id:      UniqueID(),
 		created: time.Now(),
 	}, nil
 }
 
-func diget(ids []string, timings []int16, floor, ceiling int) []int16 {
+func diget(ids []string, timings []uint64, floor, ceiling int) []uint16 {
 	return nil
 }
 
 func process_host(
-	hostb *bolt.Bucket, ids []string, timings []int16, start, end string,
-) error {
-	return nil
+	hostb *bolt.Bucket, ids []string, timings []uint64, start, end string,
+) ([]string, []uint64, error) {
+	err := hostb.ForEach(func(name, value []byte) error {
+		if value == nil {
+			// should never happen
+			return nil
+		}
+
+		ids = append(ids, string(name))
+		timings = append(timings, binary.LittleEndian.Uint64(value))
+
+		return nil
+	})
+
+	return ids, timings, errors.Trace(err)
 }
 
 func JSON(id string) ([]byte, error) { return nil, nil }

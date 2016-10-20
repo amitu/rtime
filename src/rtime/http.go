@@ -1,11 +1,9 @@
 package rtime
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"expvar"
 	"fmt"
-	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"sync"
@@ -39,7 +37,7 @@ func (c *VDCache) Add(vd *ViewData) {
 	c.Lock()
 	defer c.Unlock()
 
-	c.cache[vd.ID] = vd
+	c.cache[vd.id] = vd
 }
 
 func (c *VDCache) Cleanup() {
@@ -149,15 +147,6 @@ func viewsAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, views)
-}
-
-func UniqueID() string {
-	u := make([]byte, 16)
-	_, err := rand.Read(u)
-	if err != nil {
-		LOGGER.Error("rand_failed", "err", errors.ErrorStack(err))
-	}
-	return hex.EncodeToString(u)
 }
 
 func viewAPI(w http.ResponseWriter, r *http.Request) {
