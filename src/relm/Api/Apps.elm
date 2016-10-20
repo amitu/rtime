@@ -2,8 +2,8 @@ module Api.Apps exposing (..)
 
 -- elm.core
 
-import Json.Decode as JD exposing (string, list, dict, tuple2, int, float, (:=))
-import Json.Decode.Extra exposing ((|:), date)
+import Json.Decode as JD exposing (string, list, int, (:=))
+import Json.Decode.Extra exposing ((|:))
 import Http
 import Task
 import Date exposing (Date)
@@ -18,19 +18,16 @@ type alias View =
 
 
 type alias ViewData =
-    { timings : List Float
+    { timings : List Int
+    , id : String
     }
-
-
-fdate : Float -> Result String Date
-fdate f =
-    Ok (Date.fromTime f)
 
 
 viewdata : JD.Decoder ViewData
 viewdata =
     JD.succeed ViewData
-        |: ("timings" := list float)
+        |: ("timings" := list int)
+        |: ("id" := string)
 
 
 getAppList : (Http.Error -> a) -> (List App -> a) -> Cmd a
@@ -54,10 +51,12 @@ getViewData :
     -> View
     -> Date
     -> Date
+    -> Int
+    -> Int
     -> (Http.Error -> a)
     -> (ViewData -> a)
     -> Cmd a
-getViewData app view start end failed succeed =
+getViewData app view start end floor ceiling failed succeed =
     (Http.get (JD.at [ "result" ] viewdata) <|
         Http.url
             "/view"
@@ -65,6 +64,8 @@ getViewData app view start end failed succeed =
             , ( "view", view )
             , ( "start", (toString <| Date.toTime start) )
             , ( "end", (toString <| Date.toTime end) )
+            , ( "floor", (toString floor) )
+            , ( "ceiling", (toString ceiling) )
             ]
     )
         |> Task.perform failed succeed

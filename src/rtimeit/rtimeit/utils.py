@@ -28,7 +28,7 @@ class Timer(object):
     def __str__(self):
         return self.name
 
-    def init(self):
+    def init(self, data):
         global timer
         if current_thread() in _events:
             raise RuntimeError('Timer is initialised multiple times')
@@ -69,7 +69,7 @@ class Timer(object):
         _events[current_thread()] = self.data
         return self
 
-    def stop(self, send=True):
+    def stop(self, send=True, data):
         if current_thread() not in _events:
             return self
         if self._start_time is None:
@@ -89,7 +89,7 @@ class Timer(object):
             if send:
                 self.send()
 
-    def send(self):
+    def _send(self):
         if self.ms is None:
             raise RuntimeError('TimeIt is not recorded')
 
@@ -111,3 +111,84 @@ class Timer(object):
         if timer is None:
             raise RuntimeError('Timeit is not initialised')
         timer.name = name
+
+
+init(name=None, **kw)
+
+init("generate_chat_report", paid=True)
+{
+    "name": "generate_chat_report",
+    "paid": True,
+    "current": []
+}
+
+add_session_data(**kw)
+
+add_session_data(number_of_leads=20)
+{
+    "name": "generate_chat_report",
+    "paid": True,
+    "number_of_leads": 20
+}
+
+
+add_frame_data(**kw)
+
+add_frame_data(number_of_sales=2)
+{
+    "name": "generate_chat_report",
+    "paid": True,
+    "number_of_leads": 20,
+    "number_of_sales": 2,
+    "current": [],
+
+}
+
+set_name(name)
+
+
+stack_frame(name)
+
+stack_frame("do_heavy_computation")
+{
+    "name": "generate_chat_report",
+    "paid": True,
+    "number_of_leads": 20,
+    "number_of_sales": 2,
+    "do_heavy_computation": {}
+    "current": [{}]
+}
+
+add_frame_data(x=2)
+
+{
+    "name": "generate_chat_report",
+    "paid": True,
+    "number_of_leads": 20,
+    "number_of_sales": 2,
+    "do_heavy_computation": {"x": 2}
+    "current": [{"x": 2}]
+}
+
+push_frame("do_heavy_child")
+{
+    "name": "generate_chat_report",
+    "paid": True,
+    "number_of_leads": 20,
+    "number_of_sales": 2,
+    "do_heavy_computation": {"x": 2, "do_heavy_child": {}}
+    "current": [{"x": 2, "do_heavy_child": {}}, {}]
+}
+
+pop_frame()
+pop_frame()
+{
+    "name": "generate_chat_report",
+    "paid": True,
+    "number_of_leads": 20,
+    "number_of_sales": 2,
+    "do_heavy_computation": {"x": 2, "do_heavy_child": {}}
+    "current": []
+}
+
+data = stop(send=True, **kw)

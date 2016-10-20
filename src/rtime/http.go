@@ -165,16 +165,40 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 	app := r.FormValue("app")
 	if app == "" {
 		reject(w, "app is required")
+		LOGGER.Warn("app_missing")
 		return
 	}
 
 	view := r.FormValue("view")
 	if view == "" {
 		reject(w, "view is required")
+		LOGGER.Warn("view_missing")
 		return
 	}
 
 	host := r.FormValue("host")
+
+	floors := r.FormValue("floor")
+	floor := 0
+	if floors != "" {
+		_, err := fmt.Scanf("%d", &floor)
+		if err != nil {
+			reject(w, "invalid floor")
+			LOGGER.Warn("invalid_floor")
+			return
+		}
+	}
+
+	cielings := r.FormValue("cieling")
+	cieling := 0
+	if cielings != "" {
+		_, err := fmt.Scanf("%d", &cieling)
+		if err != nil {
+			reject(w, "invalid cieling")
+			LOGGER.Warn("invalid_cieling")
+			return
+		}
+	}
 
 	start := r.FormValue("start")
 	if view == "" {
@@ -188,7 +212,7 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rd, err := GetViewData(app, view, host, start, end)
+	rd, err := GetViewData(app, view, host, start, end, floor, cieling)
 	if err != nil {
 		LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
 		reject(w, errors.ErrorStack(err))

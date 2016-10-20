@@ -117,13 +117,32 @@ func ListApps() (apps []string, err error) {
 }
 
 type ViewData struct {
-	Timings []float32 `json:"timings"`
-	ID      string    `json:"id"`
-	ids     []string  // not exported to clients
-	created time.Time // not exported
+	Timings [1024]int16 `json:"timings"`
+	ID      string      `json:"id"`
+	ids     []string    // not exported to clients
+	created time.Time   // not exported
 }
 
-func GetViewData(app, view, host, start, end string) (*ViewData, error) {
+func GetViewData(
+	app, view, host, start, end string, floor, ceiling int,
+) (*ViewData, error) {
+	//ids := make([]string, 1024)
+	//timings := make([]int16, 1024)
+	//
+	//err := errors.Trace(
+	//	boltdb.View(func(tx *bolt.Tx) error {
+	//		return errors.Trace(
+	//			tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
+	//				apps = append(apps, string(name))
+	//				return nil
+	//			}),
+	//		)
+	//	}),
+	//)
+	//
+	//if err != nil {
+	//	return errors.Trace(err)
+	//}
 	return nil, nil
 }
 

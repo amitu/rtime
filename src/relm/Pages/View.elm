@@ -49,7 +49,18 @@ update msg model =
             )
 
         DateFetched date ->
-            ( model, Apps.getViewData model.app model.view date date ViewDataFailed ViewDataFetched )
+            ( model
+            , (Apps.getViewData
+                model.app
+                model.view
+                date
+                date
+                0
+                0
+                ViewDataFailed
+                ViewDataFetched
+              )
+            )
 
         ViewDataFetched data ->
             ( { model | data = RD.Success data }, Cmd.none )

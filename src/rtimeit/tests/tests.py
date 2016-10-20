@@ -60,7 +60,7 @@ if __name__ == '__main__':
     Timer('rtimeit.tests').init()
     test_f1()
     from rtimeit.utils import timer
-    Timer.set_main_name('new_name')
+    Timer.set_name('new_name')
     timer.stop()
 
     # Example 7
