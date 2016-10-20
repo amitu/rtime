@@ -2,14 +2,15 @@ from functools import wraps
 
 import six
 
-from .utils import TimeIt
+from .utils import Timer
 
 
 def timeit(func_or_name):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            return TimeIt(name)(func)(*args, **kwargs)
+            with Timer(name):
+                return func(*args, **kwargs)
         return wrapper
 
     if isinstance(func_or_name, six.string_types):

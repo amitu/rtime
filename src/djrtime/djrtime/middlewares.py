@@ -4,7 +4,7 @@ import types
 
 from django.utils.functional import lazy
 
-from rtimeit.utils import TimeIt, logger
+from rtimeit.utils import Timer, logger
 
 
 def get_request_name(request):
@@ -31,7 +31,7 @@ def get_request_name(request):
 
 class TimeItMiddleware(object):
     def process_request(self, request):
-        request.timeit = TimeIt(lazy(lambda r: get_request_name(r))(request))
+        request.timeit = Timer(lazy(lambda r: get_request_name(r))(request))
         request.timeit.start()
 
     def process_response(self, request, response):
