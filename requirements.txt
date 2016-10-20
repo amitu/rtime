@@ -1,3 +1,9 @@
 libsass==0.11.1
 pip==8.1.2
 doit==0.29.0
+Django==1.10.2
+pytest==3.0.3
+pytest-cov==2.4.0
+pytest-django==3.0.0
+-e git+ssh://git@github.com/Coverfox/gsub.git@78a27e9d19da961f07946d810b7add2b7292e13a#egg=gsub
+structlog==16.1.0

@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+*.py[co]
 
 # Folders
 _obj
@@ -39,3 +40,6 @@ vendor/src/github.com/go-stack/stack/
 vendor/src/github.com/mattn/go-colorable/
 vendor/src/github.com/juju/errors/
 rtime.boltdb
+db.sqlite3
+.cache
+.idea/

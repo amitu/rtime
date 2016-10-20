@@ -9,10 +9,9 @@ DOIT_CONFIG = {
 }
 
 
-
 def task_rtime():
     return {
-        "actions": ["/usr/local/bin/go install rtime/cmd/..."],
+        "actions": ["go install rtime/cmd/..."],
         "file_dep": (
             glob.glob("src/rtime/*.go")
             + glob.glob("src/rtime/*/*/*.go")
