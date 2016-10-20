@@ -45,7 +45,7 @@ func (c *VDCache) Cleanup() {
 	list := []string{}
 
 	for k, rd := range c.cache {
-		if time.Since(rd.created) > time.Second*10*60 {
+		if rd != nil && time.Since(rd.created) > time.Second*10*60 {
 			list = append(list, k)
 		}
 	}
@@ -222,5 +222,8 @@ func ListenAndServe(listen string) {
 	http.HandleFunc("/", elmPage)
 
 	LOGGER.Info("http_server_starting", "listen", listen)
-	LOGGER.Error("server_done", "err", http.ListenAndServe(listen, nil))
+	LOGGER.Error(
+		"server_done", "err",
+		http.ListenAndServe(listen, http.HandlerFunc(Midddleware)),
+	)
 }
