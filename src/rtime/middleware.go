@@ -53,14 +53,11 @@ func Midddleware(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	ctx := r.Context()
-	r = r.WithContext(ctx)
-
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
 
-	http.DefaultServeMux.ServeHTTP(w2, r.WithContext(ctx))
+	http.DefaultServeMux.ServeHTTP(w2, r)
 
 	logger.Info("http_served")
 }
