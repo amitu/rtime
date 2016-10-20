@@ -117,33 +117,83 @@ func ListApps() (apps []string, err error) {
 }
 
 type ViewData struct {
-	Timings [1024]int16 `json:"timings"`
-	ID      string      `json:"id"`
-	ids     []string    // not exported to clients
-	created time.Time   // not exported
+	Timings []int16   `json:"timings"`
+	ID      string    `json:"id"`
+	ids     []string  // not exported to clients
+	created time.Time // not exported
 }
 
 func GetViewData(
 	app, view, host, start, end string, floor, ceiling int,
 ) (*ViewData, error) {
-	//ids := make([]string, 1024)
-	//timings := make([]int16, 1024)
-	//
-	//err := errors.Trace(
-	//	boltdb.View(func(tx *bolt.Tx) error {
-	//		return errors.Trace(
-	//			tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
-	//				apps = append(apps, string(name))
-	//				return nil
-	//			}),
-	//		)
-	//	}),
-	//)
-	//
-	//if err != nil {
-	//	return errors.Trace(err)
-	//}
-	return nil, nil
+	ids := make([]string, 1024)
+	timings := make([]int16, 1024)
+
+	err := errors.Trace(
+		boltdb.View(func(tx *bolt.Tx) error {
+			appb := tx.Bucket([]byte(app))
+			if appb == nil {
+				LOGGER.Error("unknown_app", "app", app)
+				return errors.New("unknown app")
+			}
+
+			viewb := appb.Bucket([]byte(view))
+			if viewb == nil {
+				LOGGER.Error("unknown_view", "app", app, "view", view)
+				return errors.New("unknown view")
+			}
+
+			if host == "" {
+				err := viewb.ForEach(func(name, value []byte) error {
+					if value != nil {
+						// should never happen
+						return nil
+					}
+					return errors.Trace(
+						process_host(
+							viewb.Bucket(name), ids, timings, start, end,
+						),
+					)
+				})
+
+				if err != nil {
+					return errors.Trace(err)
+				}
+			} else {
+				hostb := viewb.Bucket([]byte(host))
+				if hostb == nil {
+					LOGGER.Error(
+						"unknown_host", "app", app, "view", view, "host", host,
+					)
+					return errors.New("unknown host")
+				}
+				return errors.Trace(process_host(hostb, ids, timings, start, end))
+			}
+
+			return nil
+		}),
+	)
+
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return &ViewData{
+		Timings: diget(ids, timings, floor, ceiling),
+		ids:     ids,
+		ID:      UniqueID(),
+		created: time.Now(),
+	}, nil
+}
+
+func diget(ids []string, timings []int16, floor, ceiling int) []int16 {
+	return nil
+}
+
+func process_host(
+	hostb *bolt.Bucket, ids []string, timings []int16, start, end string,
+) error {
+	return nil
 }
 
 func JSON(id string) ([]byte, error) { return nil, nil }

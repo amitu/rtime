@@ -39,7 +39,6 @@ func (c *VDCache) Add(vd *ViewData) {
 	c.Lock()
 	defer c.Unlock()
 
-	vd.created = time.Now()
 	c.cache[vd.ID] = vd
 }
 
@@ -181,7 +180,7 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 	floors := r.FormValue("floor")
 	floor := 0
 	if floors != "" {
-		_, err := fmt.Scanf("%d", &floor)
+		_, err := fmt.Sscanf(floors, "%d", &floor)
 		if err != nil {
 			reject(w, "invalid floor")
 			LOGGER.Warn("invalid_floor")
@@ -192,7 +191,7 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 	cielings := r.FormValue("cieling")
 	cieling := 0
 	if cielings != "" {
-		_, err := fmt.Scanf("%d", &cieling)
+		_, err := fmt.Sscanf(cielings, "%d", &cieling)
 		if err != nil {
 			reject(w, "invalid cieling")
 			LOGGER.Warn("invalid_cieling")
