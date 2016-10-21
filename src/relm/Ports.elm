@@ -22,16 +22,17 @@ fdate d =
 getGraph :
     String
     -> String
+    -> String
     -> Date
     -> Date
     -> Int
     -> Int
     -> Cmd a
-getGraph app view start end floor ceiling =
-    get_graph ( app, view, (fdate start), (fdate start), floor, ceiling )
+getGraph app view host start end floor ceiling =
+    get_graph ( app, view, host, (fdate start), (fdate end), floor, ceiling )
 
 
-port get_graph : ( String, String, String, String, Int, Int ) -> Cmd a
+port get_graph : ( String, String, String, String, String, Int, Int ) -> Cmd a
 
 
-port graphData : (( String, String, List ( Int, Int ) ) -> msg) -> Sub msg
+port graphData : (( String, String, Int, List ( Int, Int ) ) -> msg) -> Sub msg

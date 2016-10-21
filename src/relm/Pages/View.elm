@@ -24,6 +24,7 @@ import Ports
 type alias ViewData =
     { timings : List (Int, Int)
     , id : String
+    , ceiling : Int
     }
 
 
@@ -42,7 +43,7 @@ init =
 type Msg
     = Viewed Apps.App Apps.View
     | DateFetched Date.Date
-    | ViewDataFetched ( String, String, List ( Int, Int ) )
+    | ViewDataFetched ( String, String, Int, List ( Int, Int ) )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -65,6 +66,7 @@ update msg model =
             , (Ports.getGraph
                 model.app
                 model.view
+                ""
                 (DP.add DP.Minute -10 date)
                 date
                 0
@@ -72,10 +74,11 @@ update msg model =
               )
             )
 
-        ViewDataFetched (err, id, list) ->
+        ViewDataFetched (err, id, ceiling, list) ->
             case err of
                 "" ->
-                ( { model | data = RD.Success {id = id, timings = list} }
+                ( { model | data = RD.Success {id = id, timings = list, ceiling = ceiling
+                    } }
                 , Cmd.none )
 
                 msg ->

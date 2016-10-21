@@ -207,7 +207,13 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, rd)
+	err = rd.writeTo(w)
+	if err != nil {
+		LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
+		reject(w, errors.ErrorStack(err))
+		return
+	}
+
 	cache.Add(rd)
 }
 

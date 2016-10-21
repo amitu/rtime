@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"time"
 
+	"io"
+
 	"github.com/boltdb/bolt"
 	"github.com/juju/errors"
 )
@@ -136,8 +138,25 @@ func UniqueID() string {
 type ViewData struct {
 	timings []uint16
 	id      string
+	ceiling uint64
 	ids     []string  // not exported to clients
 	created time.Time // not exported
+}
+
+func (vd *ViewData) writeTo(w io.Writer) error {
+	LOGGER.Info("vd.id", "id", vd.id, "len", len(vd.id))
+	for _, c := range vd.id {
+		w.Write([]byte{byte(c), 0})
+	}
+
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, vd.ceiling)
+	w.Write(b)
+
+	for _, v := range vd.timings {
+		w.Write([]byte{byte(v % 256), byte(v / 256)})
+	}
+	return nil
 }
 
 func GetViewData(
@@ -159,8 +178,8 @@ func GetViewData(
 	if end.Before(start) || end.UnixNano()-start.UnixNano() < 1024 {
 		return nil, errors.New(
 			fmt.Sprintf(
-				"invalid start = %s, end = %s, close=%s",
-				starts, ends, !end.Before(start),
+				"invalid start = %s, end = %s, close=%t",
+				start.UnixNano(), end.UnixNano(), !end.Before(start),
 			),
 		)
 	}
@@ -221,11 +240,12 @@ func GetViewData(
 		return nil, errors.Trace(err)
 	}
 
-	tdigest, idigest := diget(start, end, ids, timings, floor, ceiling)
+	ceiling, tdigest, idigest := diget(start, end, ids, timings, floor, ceiling)
 	LOGGER.Debug("digest", "tdigest", tdigest, "idigest", idigest)
 	return &ViewData{
 		timings: tdigest,
 		ids:     idigest,
+		ceiling: ceiling,
 		id:      UniqueID(),
 		created: time.Now(),
 	}, nil
@@ -242,7 +262,10 @@ func d2slot(snano, step uint64, dt string) uint16 {
 }
 
 func normalise(v, floor, ceiling uint64) uint8 {
-	return uint8(64 * (float32(v-floor) / float32(ceiling-floor)))
+	if v > ceiling {
+		return 63
+	}
+	return uint8(64*(float32(v-floor)/float32(ceiling-floor)) - 1)
 }
 
 func pack(slot uint16, v uint8) uint16 {
@@ -251,7 +274,7 @@ func pack(slot uint16, v uint8) uint16 {
 
 func diget(
 	start, end time.Time, ids []string, timings []uint64, floor, ceiling uint64,
-) ([]uint16, []string) {
+) (uint64, []uint16, []string) {
 	LOGGER.Info("digest", "ids", ids, "timings", timings)
 
 	snano := uint64(start.UnixNano())
@@ -274,7 +297,7 @@ func diget(
 		tdigest[slot] = pack(slot, normalise(timings[i], floor, ceiling))
 	}
 
-	return tdigest, idigest
+	return ceiling, tdigest, idigest
 }
 
 func process_host(
