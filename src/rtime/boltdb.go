@@ -112,18 +112,49 @@ func ListViews(appname string) (views []string, err error) {
 	return
 }
 
-func ListApps() (apps []string, err error) {
-	err = errors.Trace(
-		boltdb.View(func(tx *bolt.Tx) error {
-			return errors.Trace(
-				tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
-					apps = append(apps, string(name))
+type View struct {
+	Name  string   `json:"name"`
+	Hosts []string `json:"hosts"`
+}
+
+type App struct {
+	Name  string `json:"name"`
+	Views []View `json:"views"`
+}
+
+func ListApps() (apps []App, err error) {
+	err = boltdb.View(func(tx *bolt.Tx) error {
+		err := tx.ForEach(func(name []byte, appb *bolt.Bucket) error {
+			app := App{Name: string(name), Views: []View{}}
+			apps = append(apps, app)
+
+			err := appb.ForEach(func(name, value []byte) error {
+				if value != nil {
+					// should never happen
 					return nil
-				}),
-			)
-		}),
-	)
-	return
+				}
+				view := View{Name: string(name), Hosts: []string{}}
+				app.Views = append(app.Views, view)
+
+				err := appb.Bucket(name).ForEach(func(name, hostb []byte) error {
+					if hostb != nil {
+						// should never happen
+						return nil
+					}
+					view.Hosts = append(view.Hosts, string(name))
+					return nil
+				})
+
+				return errors.Trace(err)
+			})
+
+			return errors.Trace(err)
+		})
+
+		return errors.Trace(err)
+	})
+
+	return apps, errors.Trace(err)
 }
 
 func UniqueID() string {
