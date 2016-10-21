@@ -123,7 +123,9 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ Sub.map ViewMsg (View.subscriptions model.view)
+        ]
 
 
 view : Model -> Html Msg

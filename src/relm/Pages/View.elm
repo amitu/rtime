@@ -21,8 +21,14 @@ import Api.Apps as Apps
 import Ports
 
 
+type alias ViewData =
+    { timings : List (Int, Int)
+    , id : String
+    }
+
+
 type alias Model =
-    { data : RD.WebData Apps.ViewData
+    { data : RD.WebData ViewData
     , app : Apps.App
     , view : Apps.View
     }
@@ -35,9 +41,8 @@ init =
 
 type Msg
     = Viewed Apps.App Apps.View
-    | ViewDataFetched Apps.ViewData
-    | ViewDataFailed Http.Error
     | DateFetched Date.Date
+    | ViewDataFetched ( String, String, List ( Int, Int ) )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -45,7 +50,7 @@ update msg model =
     case Debug.log "P.App" msg of
         Viewed app view ->
             ( { model
-                | data = RD.Loading
+                | data = RD.NotAsked
                 , app = Http.uriDecode app
                 , view = Http.uriDecode view
               }
@@ -56,25 +61,32 @@ update msg model =
             )
 
         DateFetched date ->
-            ( model
-            , (Apps.getViewData
+            ( { model | data = RD.Loading }
+            , (Ports.getGraph
                 model.app
                 model.view
                 (DP.add DP.Minute -10 date)
                 date
                 0
                 0
-                ViewDataFailed
-                ViewDataFetched
               )
             )
 
-        ViewDataFetched data ->
-            ( { model | data = RD.Success data }, Cmd.none )
+        ViewDataFetched (err, id, list) ->
+            case err of
+                "" ->
+                ( { model | data = RD.Success {id = id, timings = list} }
+                , Cmd.none )
 
-        ViewDataFailed err ->
-            ( { model | data = RD.Failure err }, Cmd.none )
+                msg ->
+                    ({model | data = RD.Failure (Http.UnexpectedPayload msg)}
+                    , Cmd.none
+                    )
 
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Ports.graphData ViewDataFetched
 
 view : Model -> Html Msg
 view model =
