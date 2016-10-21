@@ -3,6 +3,7 @@ package rtime
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -12,6 +13,10 @@ import (
 
 var (
 	boltdb *bolt.DB
+)
+
+const (
+	TFormat = "2006-01-02T15:04:05.999999"
 )
 
 func MustInitWriter(pth string) {
@@ -56,7 +61,7 @@ func Write(data []byte, p *packet) {
 			return errors.Trace(err)
 		}
 
-		ts := []byte(time.Now().Format("2006-01-02T15:04:05.999999"))
+		ts := []byte(time.Now().Format(TFormat))
 		LOGGER.Debug("key", "ts", string(ts))
 
 		b := make([]byte, 8)
@@ -136,12 +141,31 @@ type ViewData struct {
 }
 
 func GetViewData(
-	app, view, host, start, end string, floor, ceiling int,
+	app, view, host, starts, ends string, floor, ceiling uint64,
 ) (*ViewData, error) {
 	ids := []string{}
 	timings := []uint64{}
 
-	err := errors.Trace(
+	start, err := time.Parse(TFormat, starts)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	end, err := time.Parse(TFormat, ends)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	if end.Before(start) || end.UnixNano()-start.UnixNano() < 1024 {
+		return nil, errors.New(
+			fmt.Sprintf(
+				"invalid start = %s, end = %s, close=%s",
+				starts, ends, !end.Before(start),
+			),
+		)
+	}
+
+	err = errors.Trace(
 		boltdb.View(func(tx *bolt.Tx) error {
 			appb := tx.Bucket([]byte(app))
 			if appb == nil {
@@ -165,7 +189,7 @@ func GetViewData(
 					var err error
 
 					ids, timings, err = process_host(
-						viewb.Bucket(name), ids, timings, start, end,
+						viewb.Bucket(name), ids, timings, starts, ends,
 					)
 
 					return errors.Trace(err)
@@ -184,7 +208,7 @@ func GetViewData(
 				}
 
 				var err error
-				ids, timings, err = process_host(hostb, ids, timings, start, end)
+				ids, timings, err = process_host(hostb, ids, timings, starts, ends)
 
 				return errors.Trace(err)
 			}
@@ -197,17 +221,60 @@ func GetViewData(
 		return nil, errors.Trace(err)
 	}
 
+	tdigest, idigest := diget(start, end, ids, timings, floor, ceiling)
+	LOGGER.Debug("digest", "tdigest", tdigest, "idigest", idigest)
 	return &ViewData{
-		timings: diget(ids, timings, floor, ceiling),
-		ids:     ids,
+		timings: tdigest,
+		ids:     idigest,
 		id:      UniqueID(),
 		created: time.Now(),
 	}, nil
 }
 
-func diget(ids []string, timings []uint64, floor, ceiling int) []uint16 {
+func d2slot(snano, step uint64, dt string) uint16 {
+	ts, err := time.Parse(TFormat, dt)
+	if err != nil {
+		LOGGER.Error("invalid_ts", "ts", dt)
+		return 0
+	}
+
+	return uint16((uint64(ts.UnixNano()) - snano) / step)
+}
+
+func normalise(v, floor, ceiling uint64) uint8 {
+	return uint8(64 * (float32(v-floor) / float32(ceiling-floor)))
+}
+
+func pack(slot uint16, v uint8) uint16 {
+	return uint16(v)*1024 + (slot % 1024)
+}
+
+func diget(
+	start, end time.Time, ids []string, timings []uint64, floor, ceiling uint64,
+) ([]uint16, []string) {
 	LOGGER.Info("digest", "ids", ids, "timings", timings)
-	return nil
+
+	snano := uint64(start.UnixNano())
+	step := (uint64(end.UnixNano()) - snano) / 1024
+
+	tdigest := make([]uint16, 1024)
+	idigest := make([]string, 1024)
+
+	if ceiling == 0 {
+		for _, v := range timings {
+			if ceiling < v {
+				ceiling = v
+			}
+		}
+	}
+
+	for i := range ids {
+		slot := d2slot(snano, step, ids[i])
+		idigest[slot] = ids[i]
+		tdigest[slot] = pack(slot, normalise(timings[i], floor, ceiling))
+	}
+
+	return tdigest, idigest
 }
 
 func process_host(

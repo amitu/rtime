@@ -167,7 +167,7 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 	host := r.FormValue("host")
 
 	floors := r.FormValue("floor")
-	floor := 0
+	floor := uint64(0)
 	if floors != "" {
 		_, err := fmt.Sscanf(floors, "%d", &floor)
 		if err != nil {
@@ -178,7 +178,7 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cielings := r.FormValue("cieling")
-	cieling := 0
+	cieling := uint64(0)
 	if cielings != "" {
 		_, err := fmt.Sscanf(cielings, "%d", &cieling)
 		if err != nil {
