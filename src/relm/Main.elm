@@ -12,8 +12,6 @@ import Html exposing (Html, div, text)
 import Routing
 import Ports
 import Pages.Index as Index
-import Pages.App as App
-import Pages.View as View
 
 
 type alias Flags =
@@ -23,16 +21,12 @@ type alias Flags =
 
 type Msg
     = IndexMsg Index.Msg
-    | AppMsg App.Msg
-    | ViewMsg View.Msg
 
 
 type alias Model =
     { csrf : String
     , route : Routing.Route
     , index : Index.Model
-    , app : App.Model
-    , view : View.Model
     }
 
 
@@ -41,8 +35,6 @@ initialModel route csrf =
     { csrf = csrf
     , route = route
     , index = Index.init
-    , app = App.init
-    , view = View.init
     }
 
 
@@ -78,20 +70,6 @@ urlUpdate result imodel =
                 in
                     ( { model | index = imodel }, Cmd.map IndexMsg icmd )
 
-            Routing.AppRoute app ->
-                let
-                    ( imodel, icmd ) =
-                        App.update (App.Viewed app) model.app
-                in
-                    ( { model | app = imodel }, Cmd.map AppMsg icmd )
-
-            Routing.ViewRoute app view ->
-                let
-                    ( imodel, icmd ) =
-                        View.update (View.Viewed app view) model.view
-                in
-                    ( { model | view = imodel }, Cmd.map ViewMsg icmd )
-
             Routing.NotFoundRoute ->
                 ( model, Ports.title "page not found" )
 
@@ -106,25 +84,11 @@ update msg model =
             in
                 ( { model | index = imodel }, Cmd.map IndexMsg icmd )
 
-        AppMsg msg ->
-            let
-                ( imodel, icmd ) =
-                    App.update msg model.app
-            in
-                ( { model | app = imodel }, Cmd.map AppMsg icmd )
-
-        ViewMsg msg ->
-            let
-                ( imodel, icmd ) =
-                    View.update msg model.view
-            in
-                ( { model | view = imodel }, Cmd.map ViewMsg icmd )
-
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Sub.map ViewMsg (View.subscriptions model.view)
+        [ Sub.map IndexMsg (Index.subscriptions model.index)
         ]
 
 
@@ -136,14 +100,6 @@ view model =
                 Routing.IndexRoute ->
                     Index.view model.index
                         |> Html.App.map IndexMsg
-
-                Routing.AppRoute _ ->
-                    App.view model.app
-                        |> Html.App.map AppMsg
-
-                Routing.ViewRoute _ _ ->
-                    View.view model.view
-                        |> Html.App.map ViewMsg
 
                 Routing.NotFoundRoute ->
                     text "page not found"

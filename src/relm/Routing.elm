@@ -7,8 +7,6 @@ import String
 
 type Route
     = IndexRoute
-    | AppRoute String
-    | ViewRoute String String
     | NotFoundRoute
 
 
@@ -16,8 +14,6 @@ matchers : Parser (Route -> a) a
 matchers =
     oneOf
         [ format IndexRoute (s "")
-        , format AppRoute (s "app" </> string)
-        , format ViewRoute (s "view" </> string </> string)
         ]
 
 

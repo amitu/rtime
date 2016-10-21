@@ -65,3 +65,8 @@ view model =
 
         RD.Failure err ->
             text (toString err)
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
