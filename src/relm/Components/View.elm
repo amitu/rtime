@@ -1,4 +1,4 @@
-module Pages.View exposing (..)
+module Components.View exposing (..)
 
 -- elm.core
 

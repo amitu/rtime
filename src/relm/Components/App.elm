@@ -1,4 +1,4 @@
-module Pages.App exposing (..)
+module Components.App exposing (..)
 
 import Html exposing (Html, text, ul, li, a)
 import Html.Attributes exposing (href)
