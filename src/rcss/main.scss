@@ -4,3 +4,23 @@ $fa-font-path:        "./fonts" !default;
 @import "font-awesome";
 
 @include foundation-everything(true);
+
+h1 {
+    margin: 20px;
+}
+
+ul {
+    margin: 20px;
+    border: 1px solid #c0c0c0;
+    position: relative;
+    height: 128px;
+    width: 1026px;
+
+    li {
+        list-style: none;
+        position: absolute;
+        width: 1px;
+        background: blue;
+        bottom: 0px;
+    }
+}

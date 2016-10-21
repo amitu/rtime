@@ -2,7 +2,8 @@ module Pages.View exposing (..)
 
 -- elm.core
 
-import Html exposing (Html, text, ul, li, a)
+import Html exposing (Html, text, ul, li, a, h1, div)
+import Html.Attributes exposing (style, class)
 import Date
 import RemoteData as RD
 import Http
@@ -22,7 +23,7 @@ import Ports
 
 
 type alias ViewData =
-    { timings : List (Int, Int)
+    { timings : List ( Int, Int )
     , id : String
     , ceiling : Int
     }
@@ -74,15 +75,22 @@ update msg model =
               )
             )
 
-        ViewDataFetched (err, id, ceiling, list) ->
+        ViewDataFetched ( err, id, ceiling, list ) ->
             case err of
                 "" ->
-                ( { model | data = RD.Success {id = id, timings = list, ceiling = ceiling
-                    } }
-                , Cmd.none )
+                    ( { model
+                        | data =
+                            RD.Success
+                                { id = id
+                                , timings = list
+                                , ceiling = ceiling
+                                }
+                      }
+                    , Cmd.none
+                    )
 
                 msg ->
-                    ({model | data = RD.Failure (Http.UnexpectedPayload msg)}
+                    ( { model | data = RD.Failure (Http.UnexpectedPayload msg) }
                     , Cmd.none
                     )
 
@@ -91,11 +99,28 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Ports.graphData ViewDataFetched
 
+
+libar : ( Int, Int ) -> Html Msg
+libar ( t, v ) =
+    li
+        [ style
+            [ ( "left", ((toString t) ++ "px") )
+            , ( "height", ((toString (v * 2)) ++ "px") )
+            ]
+        ]
+        []
+
+
+graph : ViewData -> Html Msg
+graph data =
+    ul [ class "graph" ] (List.map libar data.timings)
+
+
 view : Model -> Html Msg
 view model =
     case model.data of
         RD.Success data ->
-            ul [] [ text (toString data) ]
+            div [] [ h1 [] [ text "graph" ], graph data ]
 
         RD.Loading ->
             text "loading.."
