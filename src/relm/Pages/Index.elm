@@ -44,18 +44,7 @@ update msg model =
             )
 
         AppsFetched apps ->
-            ( { model
-                | apps =
-                    RD.Success
-                        (Array.fromList
-                            (List.map
-                                (\a -> { app = a, views = RD.NotAsked })
-                                apps
-                            )
-                        )
-              }
-            , Cmd.none
-            )
+            ( { model | apps = RD.Success (Array.fromList apps) }, Cmd.none )
 
         AppsFailed err ->
             ( { model | apps = RD.Failure err }, Cmd.none )
