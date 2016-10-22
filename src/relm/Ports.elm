@@ -35,4 +35,6 @@ getGraph app view host start end floor ceiling =
 port get_graph : ( String, String, String, String, String, Int, Int ) -> Cmd a
 
 
-port graphData : (( String, String, Int, List ( Int, Int ) ) -> msg) -> Sub msg
+port graphData :
+    (( String, ( String, String, String ), Int, List ( Int, Int ) ) -> msg)
+    -> Sub msg

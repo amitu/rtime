@@ -6,11 +6,11 @@ $fa-font-path:        "./fonts" !default;
 @include foundation-everything(true);
 
 ul.graph {
-    margin: 20px;
-    border: 1px solid #c0c0c0;
+    border: 1px solid #eee;
     position: relative;
-    height: 128px;
+    height: 132px;
     width: 1026px;
+    margin-left: 0px;
 
     li {
         list-style: none;

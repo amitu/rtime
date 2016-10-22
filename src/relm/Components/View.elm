@@ -54,7 +54,7 @@ init app view =
 type Msg
     = ToggleGraph
     | DateFetched Date.Date
-    | ViewDataFetched ( String, String, Int, List ( Int, Int ) )
+    | ViewDataFetched ( String, ( String, String, String ), Int, List ( Int, Int ) )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -88,24 +88,28 @@ update msg model =
               )
             )
 
-        ViewDataFetched ( err, id, ceiling, list ) ->
-            case err of
-                "" ->
-                    ( { model
-                        | data =
-                            RD.Success
-                                { id = id
-                                , timings = list
-                                , ceiling = ceiling
-                                }
-                      }
-                    , Cmd.none
-                    )
+        ViewDataFetched ( err, ( id, app, view ), ceiling, list ) ->
+            if ( app, view ) == ( model.app, model.name ) then
+                case err of
+                    "" ->
+                        ( { model
+                            | data =
+                                RD.Success
+                                    { id = id
+                                    , timings = list
+                                    , ceiling = ceiling
+                                    }
+                          }
+                        , Cmd.none
+                        )
 
-                msg ->
-                    ( { model | data = RD.Failure (Http.UnexpectedPayload msg) }
-                    , Cmd.none
-                    )
+                    msg ->
+                        ( { model | data = RD.Failure (Http.UnexpectedPayload msg) }
+                        , Cmd.none
+                        )
+            else
+                -- no es para mi
+                ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -142,4 +146,11 @@ graph model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "view" ] [ h3 [ onClick ToggleGraph ] [ text model.name ], graph model ]
+    div [ class "view" ]
+        [ h3 [ onClick ToggleGraph ] [ text model.name ]
+        , (if model.graph then
+            graph model
+           else
+            text ""
+          )
+        ]

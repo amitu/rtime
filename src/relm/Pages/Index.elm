@@ -11,7 +11,7 @@ import Array exposing (Array)
 
 import Api.Apps as Apps
 import Components.App as App
-import Helpers exposing (imap, rdpimap)
+import Helpers exposing (imap, rdpimap, iamap)
 import Ports
 
 
@@ -106,4 +106,13 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    case model.apps of
+        RD.Success apps ->
+            Sub.batch
+                (iamap
+                    (\( i, a ) -> Sub.map (AppMsg i) (App.subscriptions a))
+                    apps
+                )
+
+        _ ->
+            Sub.none

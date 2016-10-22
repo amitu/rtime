@@ -2,6 +2,7 @@ module Helpers exposing (..)
 
 import RemoteData as RD
 import List.Extra exposing (zip)
+import Array exposing (Array)
 
 
 range : Int -> Int -> Int -> List Int
@@ -72,3 +73,12 @@ imap fn list =
             List.length list
     in
         List.map fn (zip (range 0 length 1) list)
+
+
+iamap : (( Int, a ) -> b) -> Array a -> List b
+iamap fn array =
+    let
+        length =
+            Array.length array
+    in
+        List.map fn (zip (range 0 length 1) (Array.toList array))

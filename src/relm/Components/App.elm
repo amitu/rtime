@@ -10,7 +10,7 @@ import Html.App
 
 import Api.Apps as Apps
 import Components.View as View
-import Helpers exposing (imap)
+import Helpers exposing (imap, iamap)
 
 
 type alias Model =
@@ -69,3 +69,9 @@ view model =
                     (Array.toList model.views)
                )
         )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        (iamap (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v)) model.views)
