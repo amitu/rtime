@@ -31,18 +31,19 @@ type alias ViewData =
 
 type alias Model =
     { data : RD.WebData ViewData
-    , app : Apps.App
-    , view : Apps.View
+    , app : String
+    , name : String
+    , hosts : List String
     }
 
 
-init : Model
-init =
-    { data = RD.NotAsked, app = "", view = "" }
+init : String -> Apps.View -> Model
+init app view =
+    { data = RD.NotAsked, app = app, name = view.name, hosts = view.hosts }
 
 
 type Msg
-    = Viewed Apps.App Apps.View
+    = Viewed
     | DateFetched Date.Date
     | ViewDataFetched ( String, String, Int, List ( Int, Int ) )
 
@@ -50,23 +51,14 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "P.App" msg of
-        Viewed app view ->
-            ( { model
-                | data = RD.NotAsked
-                , app = Http.uriDecode app
-                , view = Http.uriDecode view
-              }
-            , Cmd.batch
-                [ Ports.title (app ++ " -> " ++ view)
-                , Task.perform never DateFetched Date.now
-                ]
-            )
+        Viewed ->
+            ( model, Task.perform never DateFetched Date.now )
 
         DateFetched date ->
             ( { model | data = RD.Loading }
             , (Ports.getGraph
                 model.app
-                model.view
+                model.name
                 ""
                 (DP.add DP.Minute -10 date)
                 date
