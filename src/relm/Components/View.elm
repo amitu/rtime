@@ -4,6 +4,7 @@ module Components.View exposing (..)
 
 import Html exposing (Html, text, ul, li, a, h3, div)
 import Html.Attributes exposing (style, class)
+import Html.Events exposing (onClick)
 import Date
 import RemoteData as RD
 import Http
@@ -34,18 +35,24 @@ type alias Model =
     , app : String
     , name : String
     , hosts : List String
+    , graph : Bool
     }
 
 
 init : String -> Apps.View -> ( Model, Cmd Msg )
 init app view =
-    ( { data = RD.NotAsked, app = app, name = view.name, hosts = view.hosts }
+    ( { data = RD.NotAsked
+      , app = app
+      , name = view.name
+      , hosts = view.hosts
+      , graph = False
+      }
     , Cmd.none
     )
 
 
 type Msg
-    = Viewed
+    = ToggleGraph
     | DateFetched Date.Date
     | ViewDataFetched ( String, String, Int, List ( Int, Int ) )
 
@@ -53,8 +60,20 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "P.App" msg of
-        Viewed ->
-            ( model, Task.perform never DateFetched Date.now )
+        ToggleGraph ->
+            case model.graph of
+                True ->
+                    ( { model | graph = False }, Cmd.none )
+
+                False ->
+                    ( { model | graph = True }
+                    , case model.data of
+                        RD.NotAsked ->
+                            Task.perform never DateFetched Date.now
+
+                        _ ->
+                            Cmd.none
+                    )
 
         DateFetched date ->
             ( { model | data = RD.Loading }
@@ -123,4 +142,4 @@ graph model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "view" ] [ h3 [] [ text model.name ], graph model ]
+    div [ class "view" ] [ h3 [ onClick ToggleGraph ] [ text model.name ], graph model ]

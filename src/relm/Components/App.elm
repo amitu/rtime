@@ -38,7 +38,25 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    ( model, Cmd.none )
+    case Debug.log "C.App" msg of
+        ViewMsg idx msg ->
+            let
+                view =
+                    Array.get idx model.views
+
+                res =
+                    Maybe.map (\view -> View.update msg view) view
+            in
+                case res of
+                    Just ( iview, icmd ) ->
+                        ( { model
+                            | views = Array.set idx iview model.views
+                          }
+                        , Cmd.map (ViewMsg idx) icmd
+                        )
+
+                    Nothing ->
+                        Debug.crash "impossible"
 
 
 view : Model -> Html Msg
