@@ -118,14 +118,14 @@ type View struct {
 }
 
 type App struct {
-	Name  string `json:"name"`
-	Views []View `json:"views"`
+	Name  string  `json:"name"`
+	Views []*View `json:"views"`
 }
 
-func ListApps() (apps []App, err error) {
+func ListApps() (apps []*App, err error) {
 	err = boltdb.View(func(tx *bolt.Tx) error {
 		err := tx.ForEach(func(name []byte, appb *bolt.Bucket) error {
-			app := App{Name: string(name), Views: []View{}}
+			app := &App{Name: string(name), Views: []*View{}}
 			apps = append(apps, app)
 
 			err := appb.ForEach(func(name, value []byte) error {
@@ -133,7 +133,8 @@ func ListApps() (apps []App, err error) {
 					// should never happen
 					return nil
 				}
-				view := View{Name: string(name), Hosts: []string{}}
+				view := &View{Name: string(name), Hosts: []string{}}
+				LOGGER.Debug("found_view", "app", app.Name, "view", view.Name)
 				app.Views = append(app.Views, view)
 
 				err := appb.Bucket(name).ForEach(func(name, hostb []byte) error {

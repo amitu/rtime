@@ -1,13 +1,16 @@
 module Components.App exposing (..)
 
-import Html exposing (Html, text, ul, li, a, h2)
+import Html exposing (Html, text, ul, li, a, h2, div)
+import Html.Attributes exposing (class)
 import Array exposing (Array)
+import Html.App
 
 
 -- ours
 
 import Api.Apps as Apps
 import Components.View as View
+import Helpers exposing (imap)
 
 
 type alias Model =
@@ -34,4 +37,11 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    h2 [] [ text model.name ]
+    div [ class "app" ]
+        ([ h2 [] [ text model.name ]
+         ]
+            ++ (imap
+                    (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))
+                    (Array.toList model.views)
+               )
+        )

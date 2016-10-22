@@ -2,7 +2,7 @@ module Components.View exposing (..)
 
 -- elm.core
 
-import Html exposing (Html, text, ul, li, a, h1, div)
+import Html exposing (Html, text, ul, li, a, h3, div)
 import Html.Attributes exposing (style, class)
 import Date
 import RemoteData as RD
@@ -103,16 +103,11 @@ libar ( t, v ) =
         []
 
 
-graph : ViewData -> Html Msg
-graph data =
-    ul [ class "graph" ] (List.map libar data.timings)
-
-
-view : Model -> Html Msg
-view model =
+graph : Model -> Html Msg
+graph model =
     case model.data of
         RD.Success data ->
-            div [] [ h1 [] [ text "graph" ], graph data ]
+            ul [ class "graph" ] (List.map libar data.timings)
 
         RD.Loading ->
             text "loading.."
@@ -122,3 +117,8 @@ view model =
 
         RD.Failure err ->
             text (toString err)
+
+
+view : Model -> Html Msg
+view model =
+    div [ class "view" ] [ h3 [] [ text model.name ], graph model ]
