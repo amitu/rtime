@@ -21,11 +21,15 @@ type alias Model =
 
 init : Apps.App -> ( Model, Cmd Msg )
 init app =
-    ( { name = app.name
-      , views = Array.fromList (List.map (View.init app.name) app.views)
-      }
-    , Cmd.none
-    )
+    let
+        ( models, cmds ) =
+            List.unzip (List.map (View.init app.name) app.views)
+    in
+        ( { name = app.name, views = Array.fromList models }
+        , Cmd.batch <|
+            Cmd.none
+                :: (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
+        )
 
 
 type Msg

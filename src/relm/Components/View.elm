@@ -37,9 +37,11 @@ type alias Model =
     }
 
 
-init : String -> Apps.View -> Model
+init : String -> Apps.View -> ( Model, Cmd Msg )
 init app view =
-    { data = RD.NotAsked, app = app, name = view.name, hosts = view.hosts }
+    ( { data = RD.NotAsked, app = app, name = view.name, hosts = view.hosts }
+    , Cmd.none
+    )
 
 
 type Msg
