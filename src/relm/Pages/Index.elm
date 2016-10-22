@@ -44,11 +44,15 @@ update msg model =
             )
 
         AppsFetched apps ->
-            ( { model
-                | apps = RD.Success (Array.fromList (List.map App.init apps))
-              }
-            , Cmd.none
-            )
+            let
+                ( models, cmds ) =
+                    List.unzip (List.map App.init apps)
+            in
+                ( { model
+                    | apps = RD.Success (Array.fromList models)
+                  }
+                , Cmd.batch (imap (\( i, cmd ) -> Cmd.map (AppMsg i) cmd) cmds)
+                )
 
         AppsFailed err ->
             ( { model | apps = RD.Failure err }, Cmd.none )

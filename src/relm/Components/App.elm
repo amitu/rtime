@@ -19,11 +19,13 @@ type alias Model =
     }
 
 
-init : Apps.App -> Model
+init : Apps.App -> ( Model, Cmd Msg )
 init app =
-    { name = app.name
-    , views = Array.fromList (List.map (View.init app.name) app.views)
-    }
+    ( { name = app.name
+      , views = Array.fromList (List.map (View.init app.name) app.views)
+      }
+    , Cmd.none
+    )
 
 
 type Msg
