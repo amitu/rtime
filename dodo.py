@@ -32,12 +32,17 @@ def task_css():
     return {
         "actions": [
             (
-                "sassc -I src/rcss/foundation-sites/scss/ -I src/rcss/Font-Awesome/scss/ "
-                "src/rcss/main.scss src/rtime/static/style.css"
+                "cd src/relm && ../../node_modules/.bin/elm-css RCSS.elm "
+                "--module=RCSS --output elm-stuff"
+            ),
+            (
+                "cat src/rtime/static/marx.min.css "
+                "src/relm/elm-stuff/styles.css >> "
+                "src/rtime/static/style.css"
             )
         ],
         "targets": ["src/rtime/static/style.css"],
-        "file_dep": glob.glob("src/rcss/*.scss"),
+        "file_dep": glob.glob("static/relm/Css/*.elm"),
     }
 
 

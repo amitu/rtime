@@ -1,16 +1,22 @@
 module Components.App exposing (..)
 
 import Html exposing (Html, text, ul, li, a, h2, div)
-import Html.Attributes exposing (class)
 import Array exposing (Array)
 import Html.App
+import Color
+
+
+-- extra
+
+import FontAwesome as FA
 
 
 -- ours
 
 import Api.Apps as Apps
 import Components.View as View
-import Helpers exposing (imap, iamap)
+import Helpers exposing (imap, iamap, class)
+import RCSS
 
 
 type alias Model =
@@ -61,8 +67,9 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "app" ]
+    div [ class [ RCSS.App ] ]
         ([ h2 [] [ text model.name ]
+         , FA.amazon (Color.rgb 255 0 0) 24
          ]
             ++ (imap
                     (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))

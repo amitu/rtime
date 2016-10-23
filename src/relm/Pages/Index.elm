@@ -1,6 +1,6 @@
 module Pages.Index exposing (..)
 
-import Html exposing (Html, text, ul, li, a, h1)
+import Html exposing (Html, text, ul, li, a, h1, div)
 import Html.App
 import RemoteData as RD
 import Http
@@ -11,7 +11,8 @@ import Array exposing (Array)
 
 import Api.Apps as Apps
 import Components.App as App
-import Helpers exposing (imap, rdpimap, iamap)
+import Helpers exposing (imap, rdpimap, iamap, class)
+import RCSS
 import Ports
 
 
@@ -84,24 +85,27 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    case model.apps of
-        RD.Success apps ->
-            ul []
-                ([ h1 [] [ text "rtime" ] ]
-                    ++ (imap
+    let
+        content =
+            case model.apps of
+                RD.Success apps ->
+                    ul []
+                        (imap
                             (\( i, a ) -> Html.App.map (AppMsg i) (App.view a))
                             (Array.toList apps)
-                       )
-                )
+                        )
 
-        RD.Loading ->
-            text "loading.."
+                RD.Loading ->
+                    text "loading.."
 
-        RD.NotAsked ->
-            text "Not asked"
+                RD.NotAsked ->
+                    text "Not asked"
 
-        RD.Failure err ->
-            text (toString err)
+                RD.Failure err ->
+                    text (toString err)
+    in
+        div [ class [ RCSS.Main ] ]
+            [ h1 [] [ text "rtime" ], content ]
 
 
 subscriptions : Model -> Sub Msg

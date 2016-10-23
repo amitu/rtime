@@ -1,8 +1,15 @@
 module Helpers exposing (..)
 
-import RemoteData as RD
+-- core
+
 import List.Extra exposing (zip)
 import Array exposing (Array)
+
+
+-- extra
+
+import Html.CssHelpers
+import RemoteData as RD
 
 
 range : Int -> Int -> Int -> List Int
@@ -82,3 +89,7 @@ iamap fn array =
             Array.length array
     in
         List.map fn (zip (range 0 length 1) (Array.toList array))
+
+
+{ id, class, classList } =
+    Html.CssHelpers.withNamespace ""
