@@ -43,3 +43,6 @@ rtime.boltdb
 db.sqlite3
 .cache
 .idea/
+.coverage
+htmlcov
+
