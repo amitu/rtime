@@ -43,6 +43,11 @@ pmap pred fn list =
         list
 
 
+cmap : (a -> Bool) -> (a -> b) -> List a -> List b
+cmap pred fn list =
+    List.map fn (Debug.log "filtered" (List.filter pred list))
+
+
 rdpmap :
     (a -> Bool)
     -> (a -> a)

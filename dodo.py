@@ -37,7 +37,7 @@ def task_css():
             ),
             (
                 "cat src/rtime/static/marx.min.css "
-                "src/relm/elm-stuff/styles.css >> "
+                "src/relm/elm-stuff/styles.css > "
                 "src/rtime/static/style.css"
             )
         ],

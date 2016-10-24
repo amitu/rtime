@@ -12,6 +12,10 @@ import Css
         , stylesheet
         , margin2
         , px
+        , rgb
+        , dashed
+        , border3
+        , height
         )
 import Css.Elements exposing (div, h2)
 import Css.Namespace exposing (namespace)
@@ -20,6 +24,7 @@ import Css.Namespace exposing (namespace)
 type CssClasses
     = App
     | Main
+    | Graph
 
 
 css : Css.Stylesheet
@@ -31,6 +36,10 @@ css =
                 [ h2
                     [ color (hex "333") ]
                 ]
+            ]
+        , (.) Graph
+            [ -- border3 (px 1) dashed (rgb 11 14 17)
+              height (px 130)
             ]
         ]
 

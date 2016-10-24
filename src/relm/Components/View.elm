@@ -5,6 +5,8 @@ module Components.View exposing (..)
 import Html exposing (Html, text, ul, li, a, h3, div)
 import Html.Attributes exposing (style, class)
 import Html.Events exposing (onClick)
+import Svg as S exposing (svg)
+import Svg.Attributes as S
 import Date
 import RemoteData as RD
 import Http
@@ -21,6 +23,7 @@ import Date.Extra.Period as DP
 
 import Api.Apps as Apps
 import Ports
+import Helpers exposing (cmap)
 
 
 type alias ViewData =
@@ -117,22 +120,51 @@ subscriptions model =
     Ports.graphData ViewDataFetched
 
 
+maker : (String -> S.Attribute Msg) -> number -> S.Attribute Msg
+maker m v =
+    m (toString v)
+
+
+x1 : Int -> S.Attribute Msg
+x1 =
+    maker S.x1
+
+
+x2 : Int -> S.Attribute Msg
+x2 =
+    maker S.x2
+
+
+y1 : number -> S.Attribute Msg
+y1 v =
+    maker S.y1 ((64 - v) * 2)
+
+
+y2 : number -> S.Attribute Msg
+y2 v =
+    maker S.y2 ((64 - v) * 2)
+
+
 libar : ( Int, Int ) -> Html Msg
 libar ( t, v ) =
-    li
-        [ style
-            [ ( "left", ((toString t) ++ "px") )
-            , ( "height", ((toString (v * 2)) ++ "px") )
-            ]
-        ]
+    S.line
+        [ x1 t, y1 -0.5, x2 t, y2 v, (S.stroke "black"), (S.strokeWidth "1") ]
         []
+
+
+decals : List (Html Msg)
+decals =
+    [ S.line [ x1 0, y1 -0.5, x2 1026, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "1") ] []
+    , S.line [ x1 0, y1 0, x2 0, y2 65, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
+    ]
 
 
 graph : Model -> Html Msg
 graph model =
     case model.data of
         RD.Success data ->
-            ul [ class "graph" ] (List.map libar data.timings)
+            S.svg [ S.class "Graph", S.width "1026", S.height "130", S.viewBox "0 0 1026 130" ] <|
+                (decals ++ cmap (snd >> (<) 0) libar data.timings)
 
         RD.Loading ->
             text "loading.."
