@@ -177,16 +177,18 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cielings := r.FormValue("cieling")
-	cieling := uint64(0)
-	if cielings != "" {
-		_, err := fmt.Sscanf(cielings, "%d", &cieling)
+	ceilings := r.FormValue("ceiling")
+	ceiling := uint64(0)
+	if ceilings != "" {
+		_, err := fmt.Sscanf(ceilings, "%d", &ceiling)
 		if err != nil {
 			reject(w, "invalid cieling")
 			LOGGER.Warn("invalid_cieling")
 			return
 		}
 	}
+
+	LOGGER.Debug("ceiling", "ceilings", ceilings, "ceiling", ceiling)
 
 	start := r.FormValue("start")
 	if view == "" {
@@ -200,7 +202,7 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rd, err := GetViewData(app, view, host, start, end, floor, cieling)
+	rd, err := GetViewData(app, view, host, start, end, floor, ceiling)
 	if err != nil {
 		LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
 		reject(w, errors.ErrorStack(err))

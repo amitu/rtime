@@ -30,6 +30,7 @@ type alias ViewData =
     { timings : List ( Int, Int )
     , id : String
     , ceiling : Int
+    , floor : Int
     }
 
 
@@ -57,7 +58,7 @@ init app view =
 type Msg
     = ToggleGraph
     | DateFetched Date.Date
-    | ViewDataFetched ( String, ( String, String, String ), Int, List ( Int, Int ) )
+    | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -86,12 +87,12 @@ update msg model =
                 ""
                 (DP.add DP.Minute -10 date)
                 date
-                0
-                0
+                20
+                120
               )
             )
 
-        ViewDataFetched ( err, ( id, app, view ), ceiling, list ) ->
+        ViewDataFetched ( err, ( id, app, view ), ( floor, ceiling ), list ) ->
             if ( app, view ) == ( model.app, model.name ) then
                 case err of
                     "" ->
@@ -101,6 +102,7 @@ update msg model =
                                     { id = id
                                     , timings = list
                                     , ceiling = ceiling
+                                    , floor = floor
                                     }
                           }
                         , Cmd.none
@@ -125,6 +127,11 @@ maker m v =
     m (toString v)
 
 
+x : Int -> S.Attribute Msg
+x =
+    maker S.x
+
+
 x1 : Int -> S.Attribute Msg
 x1 =
     maker S.x1
@@ -133,6 +140,11 @@ x1 =
 x2 : Int -> S.Attribute Msg
 x2 =
     maker S.x2
+
+
+y : Int -> S.Attribute Msg
+y v =
+    maker S.y ((64 - v) * 2)
 
 
 y1 : number -> S.Attribute Msg
@@ -152,10 +164,18 @@ libar ( t, v ) =
         []
 
 
-decals : List (Html Msg)
-decals =
-    [ S.line [ x1 0, y1 -0.5, x2 1026, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "1") ] []
+decals : ViewData -> List (Html Msg)
+decals data =
+    [ -- y axis
+      S.line [ x1 0, y1 -0.5, x2 1026, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "1") ] []
+      -- x axis
     , S.line [ x1 0, y1 0, x2 0, y2 65, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
+      -- ceiling tick
+    , S.line [ x1 0, y1 64, x2 7, y2 60, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
+    , S.text' [ x 9, y 58 ] [ S.text (toString data.ceiling) ]
+      -- floot
+    , S.line [ x1 7, y1 3.5, x2 0, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
+    , S.text' [ x 9, y 2 ] [ S.text (toString data.floor) ]
     ]
 
 
@@ -164,7 +184,7 @@ graph model =
     case model.data of
         RD.Success data ->
             S.svg [ S.class "Graph", S.width "1026", S.height "130", S.viewBox "0 0 1026 130" ] <|
-                (decals ++ cmap (snd >> (<) 0) libar data.timings)
+                ((decals data) ++ cmap (snd >> (<) 0) libar data.timings)
 
         RD.Loading ->
             text "loading.."

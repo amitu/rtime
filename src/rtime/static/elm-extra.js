@@ -33,12 +33,12 @@ app.ports.get_graph.subscribe(function(val) {
 
     oReq.onload = function (oEvent) {
         if (oReq.status != 200) {
-            app.ports.graphData.send(["server error", ["", val[0], val[1]], 0, []])
+            app.ports.graphData.send(["server error", ["", val[0], val[1]], [0, 0], []])
             return
         }
         var buffer = oReq.response; // Note: not oReq.responseText
         if (!buffer) {
-            app.ports.graphData.send(["no response", ["", val[0], val[1]], 0, []])
+            app.ports.graphData.send(["no response", ["", val[0], val[1]], [0, 0], []])
             return
         }
 
@@ -60,7 +60,7 @@ app.ports.get_graph.subscribe(function(val) {
             list.push([n % 1024,  Math.ceil(n / 1024)])
         }
 
-        app.ports.graphData.send(["", [id, val[0], val[1]], ceiling, list])
+        app.ports.graphData.send(["", [id, val[0], val[1]], [val[5], ceiling], list])
     }
     oReq.send(null)
 

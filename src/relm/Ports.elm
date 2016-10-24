@@ -36,5 +36,5 @@ port get_graph : ( String, String, String, String, String, Int, Int ) -> Cmd a
 
 
 port graphData :
-    (( String, ( String, String, String ), Int, List ( Int, Int ) ) -> msg)
+    (( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) ) -> msg)
     -> Sub msg

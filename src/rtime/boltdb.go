@@ -273,7 +273,7 @@ func GetViewData(
 	}
 
 	ceiling, tdigest, idigest := diget(start, end, ids, timings, floor, ceiling)
-	LOGGER.Debug("digest", "tdigest", tdigest, "idigest", idigest)
+	LOGGER.Debug("digested", "tdigest", tdigest, "idigest", idigest)
 	return &ViewData{
 		timings: tdigest,
 		ids:     idigest,
@@ -307,7 +307,10 @@ func pack(slot uint16, v uint8) uint16 {
 func diget(
 	start, end time.Time, ids []string, timings []uint64, floor, ceiling uint64,
 ) (uint64, []uint16, []string) {
-	LOGGER.Info("digest", "ids", ids, "timings", timings)
+	LOGGER.Info(
+		"digest", "ids", ids, "timings", timings,
+		"floor", floor, "ceiling", ceiling,
+	)
 
 	snano := uint64(start.UnixNano())
 	step := (uint64(end.UnixNano()) - snano) / 1024
