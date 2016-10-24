@@ -4,10 +4,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"math"
 	"math/rand"
 	"time"
-
-	"io"
 
 	"github.com/boltdb/bolt"
 	"github.com/juju/errors"
@@ -188,6 +188,7 @@ func (vd *ViewData) writeTo(w io.Writer) error {
 	for _, v := range vd.timings {
 		w.Write([]byte{byte(v % 256), byte(v / 256)})
 	}
+
 	return nil
 }
 
@@ -297,7 +298,10 @@ func normalise(v, floor, ceiling uint64) uint8 {
 	if v > ceiling {
 		return 63
 	}
-	return uint8(64*(float32(v-floor)/float32(ceiling-floor)) - 1)
+	if v < floor {
+		return 0
+	}
+	return uint8(math.Ceil(63 * (float64(v-floor) / float64(ceiling-floor))))
 }
 
 func pack(slot uint16, v uint8) uint16 {

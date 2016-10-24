@@ -23,7 +23,6 @@ import Date.Extra.Period as DP
 
 import Api.Apps as Apps
 import Ports
-import Helpers exposing (cmap)
 
 
 type alias ViewData =
@@ -157,11 +156,31 @@ y2 v =
     maker S.y2 ((64 - v) * 2)
 
 
+r : number -> S.Attribute Msg
+r =
+    maker S.r
+
+
+cx : number -> S.Attribute Msg
+cx =
+    maker S.cx
+
+
+cy : number -> S.Attribute Msg
+cy v =
+    maker S.cy ((64 - v) * 2)
+
+
 libar : ( Int, Int ) -> Html Msg
 libar ( t, v ) =
-    S.line
-        [ x1 t, y1 -0.5, x2 t, y2 v, (S.stroke "black"), (S.strokeWidth "1") ]
-        []
+    case v of
+        0 ->
+            S.circle [ cx t, cy 0, r 1, (S.stroke "#6") ] []
+
+        v ->
+            S.line
+                [ x1 t, y1 -0.5, x2 t, y2 v, (S.stroke "black"), (S.strokeWidth "1") ]
+                []
 
 
 decals : ViewData -> List (Html Msg)
@@ -184,7 +203,7 @@ graph model =
     case model.data of
         RD.Success data ->
             S.svg [ S.class "Graph", S.width "1026", S.height "130", S.viewBox "0 0 1026 130" ] <|
-                ((decals data) ++ cmap (snd >> (<) 0) libar data.timings)
+                ((decals data) ++ List.map libar data.timings)
 
         RD.Loading ->
             text "loading.."

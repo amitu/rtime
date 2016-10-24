@@ -45,7 +45,7 @@ app.ports.get_graph.subscribe(function(val) {
         var array = new Uint16Array(buffer)
         var id = ""
         var list = []
-        var ceiling = 0;
+        var ceiling = 0
 
         for (var i = 0; i < array.length && i < 32; i++) {
             id += String.fromCharCode(array[i])
@@ -55,9 +55,10 @@ app.ports.get_graph.subscribe(function(val) {
             ceiling += array[i] * Math.pow(256 * 256, i - 32)
         }
 
-        for (var i = 40; i < array.length; i++) {
+        for (var i = 40; i < array.length && i < 1064; i++) {
             var n = array[i]
-            list.push([n % 1024,  Math.ceil(n / 1024)])
+            if (n % 1024)
+                list.push([n % 1024,  Math.floor(n / 1024)])
         }
 
         app.ports.graphData.send(["", [id, val[0], val[1]], [val[5], ceiling], list])
