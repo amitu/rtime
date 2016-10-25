@@ -1,13 +1,16 @@
 module Pages.Index exposing (..)
 
 import Html exposing (Html, text, ul, li, a, h1, div, input)
-import Html.Attributes exposing (type')
+import Html.Attributes exposing (type', checked)
+import Html.Events exposing (onClick)
 import Html.App
 import RemoteData as RD
 import Http
 import Array exposing (Array)
+import Time
 
 
+-- extra
 -- ours
 
 import Api.Apps as Apps
@@ -19,12 +22,19 @@ import Ports
 
 type alias Model =
     { apps : RD.WebData (Array App.Model)
+    , timer : Bool
+    , timerPeriod :
+        Int
+        -- number of seconds
+    , timerCurrent :
+        Int
+        -- number of seconds since start of timer
     }
 
 
 init : Model
 init =
-    { apps = RD.NotAsked }
+    { apps = RD.NotAsked, timer = True, timerPeriod = 30, timerCurrent = 0 }
 
 
 type Msg
@@ -32,6 +42,8 @@ type Msg
     | AppsFetched (List Apps.App)
     | AppsFailed Http.Error
     | AppMsg Int App.Msg
+    | TimerToggle
+    | Tick Time.Time
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -44,6 +56,22 @@ update msg model =
                 , Ports.title "Index"
                 ]
             )
+
+        TimerToggle ->
+            ( { model | timer = not model.timer }, Cmd.none )
+
+        Tick _ ->
+            if model.timer then
+                let
+                    current =
+                        model.timerCurrent + 1
+                in
+                    if current == model.timerPeriod then
+                        ( { model | timerCurrent = 0 }, Cmd.none )
+                    else
+                        ( { model | timerCurrent = current }, Cmd.none )
+            else
+                ( model, Cmd.none )
 
         AppsFetched apps ->
             let
@@ -109,8 +137,15 @@ view model =
                 [ h1 [] [ text "rtime: Coverfox" ]
                 , div [ class [ RCSS.HMenu ] ]
                     [ a [] [ text "Last 10 Minutes" ]
-                    , input [ type' "checkbox" ] []
-                    , a [] [ text "23s" ]
+                    , input [ type' "checkbox", checked model.timer, onClick TimerToggle ] []
+                    , a [ onClick TimerToggle ]
+                        [ text
+                            (if model.timer then
+                                ((toString (model.timerPeriod - model.timerCurrent)) ++ "s")
+                             else
+                                "paused"
+                            )
+                        ]
                     , input [ type' "checkbox" ] []
                     ]
                 ]
@@ -121,13 +156,20 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.apps of
-        RD.Success apps ->
-            Sub.batch
-                (iamap
-                    (\( i, a ) -> Sub.map (AppMsg i) (App.subscriptions a))
-                    apps
-                )
+    Sub.batch
+        ((if model.timer then
+            [ (Time.every Time.second Tick) ]
+          else
+            []
+         )
+            ++ (case model.apps of
+                    RD.Success apps ->
+                        (iamap
+                            (\( i, a ) -> Sub.map (AppMsg i) (App.subscriptions a))
+                            apps
+                        )
 
-        _ ->
-            Sub.none
+                    _ ->
+                        []
+               )
+        )
