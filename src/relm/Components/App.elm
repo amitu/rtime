@@ -120,6 +120,15 @@ view model =
                             (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))
                             (List.filter (.checked) (Array.toList model.views))
                         )
+                            ++ (let
+                                    len =
+                                        (List.length (List.filter (.checked >> not) (Array.toList model.views)))
+                                in
+                                    if len > 0 then
+                                        [ span [ class [ RCSS.PlusMore ] ] [ text ("+ " ++ (toString len) ++ " more") ] ]
+                                    else
+                                        [ text "" ]
+                               )
                )
         )
 

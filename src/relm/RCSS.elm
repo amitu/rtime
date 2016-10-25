@@ -15,6 +15,7 @@ type CssClasses
     | HMenu
     | Header
     | View
+    | PlusMore
 
 
 css : Css.Stylesheet
