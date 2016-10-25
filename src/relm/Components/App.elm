@@ -51,7 +51,7 @@ type Msg
     = ViewMsg Int View.Msg
     | CheckboxToggle
     | AppToggle
-    | KeyStatus ( String, ( Bool, String ) )
+    | KeyData ( String, ( Bool, String ) )
 
 
 key : String -> String
@@ -76,7 +76,7 @@ update msg model =
                     , Ports.set_key ( key model.name, "Closed" )
                     )
 
-        KeyStatus ( k, ( ok, v ) ) ->
+        KeyData ( k, ( ok, v ) ) ->
             if k /= (key model.name) || not ok then
                 ( model, Cmd.none )
             else
@@ -151,12 +151,23 @@ view model =
                         )
 
                     Closed ->
-                        []
+                        [ span [ class [ RCSS.PlusMore ] ]
+                            [ text
+                                ((toString (Array.length model.views))
+                                    ++ " hidden"
+                                )
+                            ]
+                        ]
 
                     Checked ->
-                        (imap
-                            (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))
-                            (List.filter (.checked) (Array.toList model.views))
+                        (iamap
+                            (\( i, v ) ->
+                                if v.checked then
+                                    Html.App.map (ViewMsg i) (View.view v)
+                                else
+                                    text ""
+                            )
+                            model.views
                         )
                             ++ (let
                                     len =
@@ -186,7 +197,7 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        ((Ports.keyData KeyStatus)
+        ((Ports.keyData KeyData)
             :: (iamap
                     (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v))
                     model.views

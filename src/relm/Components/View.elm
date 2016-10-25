@@ -54,8 +54,22 @@ init app view =
       , graph = False
       , checked = False
       }
-    , Cmd.none
+    , Cmd.batch
+        (List.map
+            (\f -> Ports.get_key (f app view.name))
+            [ key1, key2 ]
+        )
     )
+
+
+key1 : String -> String -> String
+key1 a n =
+    "key_" ++ a ++ "_" ++ n ++ "_1"
+
+
+key2 : String -> String -> String
+key2 a n =
+    "key_" ++ a ++ "_" ++ n ++ "_2"
 
 
 type Msg
@@ -63,26 +77,51 @@ type Msg
     | ToggleCheck
     | DateFetched Date.Date
     | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
+    | KeyData ( String, ( Bool, String ) )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "P.App" msg of
         ToggleCheck ->
-            ( { model | checked = not model.checked }, Cmd.none )
+            ( { model | checked = not model.checked }
+            , (Ports.set_key
+                ( key1 model.app model.name
+                , if model.checked then
+                    ""
+                  else
+                    "open"
+                )
+              )
+            )
 
         ToggleGraph ->
             if model.graph then
-                ( { model | graph = False }, Cmd.none )
+                ( { model | graph = False }
+                , Ports.set_key ( key2 model.app model.name, "" )
+                )
             else
                 ( { model | graph = True }
                 , case model.data of
                     RD.NotAsked ->
-                        Task.perform never DateFetched Date.now
+                        Cmd.batch
+                            [ Task.perform never DateFetched Date.now
+                            , Ports.set_key ( key2 model.app model.name, "open" )
+                            ]
 
                     _ ->
-                        Cmd.none
+                        Ports.set_key ( key2 model.app model.name, "open" )
                 )
+
+        KeyData ( k, ( ok, v ) ) ->
+            if not ok || v == "" then
+                ( model, Cmd.none )
+            else if k == key1 model.app model.name then
+                update ToggleCheck model
+            else if k == key2 model.app model.name then
+                update ToggleGraph model
+            else
+                ( model, Cmd.none )
 
         DateFetched date ->
             ( { model | data = RD.Loading }
@@ -124,7 +163,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Ports.graphData ViewDataFetched
+    Sub.batch [ Ports.graphData ViewDataFetched, Ports.keyData KeyData ]
 
 
 maker : (String -> S.Attribute Msg) -> number -> S.Attribute Msg
