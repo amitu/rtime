@@ -1,23 +1,10 @@
 port module RCSS exposing (..)
 
-import Css.File exposing (..)
-import Html exposing (text)
+import Css.File
+import Html
 import Html.App as Html
-import Css
-    exposing
-        ( hex
-        , color
-        , children
-        , (.)
-        , stylesheet
-        , margin2
-        , px
-        , rgb
-        , dashed
-        , border3
-        , height
-        )
-import Css.Elements exposing (div, h2)
+import Css exposing (..)
+import Css.Elements exposing (div, h1, h2, h3, body, input)
 import Css.Namespace exposing (namespace)
 
 
@@ -25,38 +12,83 @@ type CssClasses
     = App
     | Main
     | Graph
+    | HMenu
+    | Header
+    | View
 
 
 css : Css.Stylesheet
 css =
     (stylesheet << namespace "")
-        [ (.) Main [ margin2 (px 0) (px 20) ]
+        [ body
+            [ color (hex "4A4A4A")
+            , margin zero
+            , padding zero
+            , fontFamilies [ "Verdana" ]
+            ]
+        , (.) Main [ margin zero, padding zero ]
+        , (.) Header
+            [ borderBottom3 (px 1) solid (hex "979797")
+            , children
+                [ h1
+                    [ fontSize (px 21)
+                    , fontWeight (int 200)
+                    , margin2 (px 8) (px 30)
+                    , display inlineBlock
+                    ]
+                ]
+            ]
+        , (.) HMenu
+            [ position absolute
+            , top zero
+            , right zero
+            , paddingTop (px 12)
+            , paddingRight (px 10)
+            , fontSize (px 14)
+            , children
+                [ input [ display inlineBlock, margin4 zero (px 7) zero (px 15) ]
+                ]
+            ]
         , (.) App
-            [ children
+            [ marginLeft (px 30)
+            , descendants
                 [ h2
-                    [ color (hex "333") ]
+                    [ fontSize (px 21)
+                    , margin2 (px 8) zero
+                    , paddingRight (px 2)
+                    , paddingBottom (px 4)
+                    , display inlineBlock
+                    , borderBottom3 (px 1) solid (hex "979797")
+                    ]
+                , input [ display inlineBlock, marginRight (px 10) ]
+                ]
+            ]
+        , (.) View
+            [ descendants
+                [ h3 [ marginTop (px 5), marginBottom (px 5) ]
                 ]
             ]
         , (.) Graph
-            [ -- border3 (px 1) dashed (rgb 11 14 17)
-              height (px 130)
+            [ marginTop (px 5)
+              --            , marginLeft (px 30)
+            , height (px 130)
             ]
         ]
 
 
-port files : CssFileStructure -> Cmd msg
+port files : Css.File.CssFileStructure -> Cmd msg
 
 
-cssFiles : CssFileStructure
+cssFiles : Css.File.CssFileStructure
 cssFiles =
-    toFileStructure [ ( "styles.css", compile [ css ] ) ]
+    Css.File.toFileStructure [ ( "styles.css", Css.File.compile [ css ] ) ]
 
 
 main : Program Never
 main =
     Html.program
         { init = ( (), files cssFiles )
-        , view = \_ -> (text "")
+        , view = \_ -> (Html.text "")
         , update = \_ _ -> ( (), Cmd.none )
         , subscriptions = \_ -> Sub.none
         }

@@ -1,6 +1,7 @@
 module Pages.Index exposing (..)
 
-import Html exposing (Html, text, ul, li, a, h1, div)
+import Html exposing (Html, text, ul, li, a, h1, div, input)
+import Html.Attributes exposing (type')
 import Html.App
 import RemoteData as RD
 import Http
@@ -89,23 +90,33 @@ view model =
         content =
             case model.apps of
                 RD.Success apps ->
-                    ul []
-                        (imap
-                            (\( i, a ) -> Html.App.map (AppMsg i) (App.view a))
-                            (Array.toList apps)
-                        )
+                    (imap
+                        (\( i, a ) -> Html.App.map (AppMsg i) (App.view a))
+                        (Array.toList apps)
+                    )
 
                 RD.Loading ->
-                    text "loading.."
+                    [ text "loading.." ]
 
                 RD.NotAsked ->
-                    text "Not asked"
+                    [ text "Not asked" ]
 
                 RD.Failure err ->
-                    text (toString err)
+                    [ text (toString err) ]
     in
         div [ class [ RCSS.Main ] ]
-            [ h1 [] [ text "rtime" ], content ]
+            ([ div [ class [ RCSS.Header ] ]
+                [ h1 [] [ text "rtime: Coverfox" ]
+                , div [ class [ RCSS.HMenu ] ]
+                    [ a [] [ text "Last 10 Minutes" ]
+                    , input [ type' "checkbox" ] []
+                    , a [] [ text "23s" ]
+                    , input [ type' "checkbox" ] []
+                    ]
+                ]
+             ]
+                ++ content
+            )
 
 
 subscriptions : Model -> Sub Msg

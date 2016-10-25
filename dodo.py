@@ -36,7 +36,7 @@ def task_css():
                 "--module=RCSS --output elm-stuff"
             ),
             (
-                "cat src/rtime/static/marx.min.css "
+                "cat src/rtime/static/reset.css "
                 "src/relm/elm-stuff/styles.css > "
                 "src/rtime/static/style.css"
             )

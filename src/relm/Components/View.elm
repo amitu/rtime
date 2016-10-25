@@ -2,8 +2,8 @@ module Components.View exposing (..)
 
 -- elm.core
 
-import Html exposing (Html, text, ul, li, a, h3, div)
-import Html.Attributes exposing (style, class)
+import Html exposing (Html, text, ul, li, a, h3, div, input)
+import Html.Attributes exposing (style, type')
 import Html.Events exposing (onClick)
 import Svg as S exposing (svg)
 import Svg.Attributes as S
@@ -23,6 +23,8 @@ import Date.Extra.Period as DP
 
 import Api.Apps as Apps
 import Ports
+import Helpers exposing (class)
+import RCSS
 
 
 type alias ViewData =
@@ -192,7 +194,7 @@ decals data =
       -- ceiling tick
     , S.line [ x1 0, y1 64, x2 7, y2 60, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
     , S.text' [ x 9, y 58 ] [ S.text (toString data.ceiling) ]
-      -- floot
+      -- floor
     , S.line [ x1 7, y1 3.5, x2 0, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
     , S.text' [ x 9, y 2 ] [ S.text (toString data.floor) ]
     ]
@@ -217,8 +219,12 @@ graph model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "view" ]
-        [ h3 [ onClick ToggleGraph ] [ text model.name ]
+    div [ class [ RCSS.View ] ]
+        [ h3 [ onClick ToggleGraph ]
+            [ input [ type' "checkbox" ] []
+            , input [ type' "checkbox" ] []
+            , text model.name
+            ]
         , (if model.graph then
             graph model
            else

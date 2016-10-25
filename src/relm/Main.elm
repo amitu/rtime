@@ -104,7 +104,7 @@ view model =
                 Routing.NotFoundRoute ->
                     text "page not found"
     in
-        div [] [ content ]
+        content
 
 
 main : Program Flags

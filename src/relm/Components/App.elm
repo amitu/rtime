@@ -1,14 +1,10 @@
 module Components.App exposing (..)
 
-import Html exposing (Html, text, ul, li, a, h2, div)
+import Html exposing (Html, text, ul, li, a, h2, div, input)
+import Html.Attributes exposing (type')
+import Html.Events exposing (onClick)
 import Array exposing (Array)
 import Html.App
-import Color
-
-
--- extra
-
-import FontAwesome as FA
 
 
 -- ours
@@ -22,6 +18,8 @@ import RCSS
 type alias Model =
     { name : String
     , views : Array View.Model
+    , checked : Bool
+    , open : Bool
     }
 
 
@@ -31,7 +29,7 @@ init app =
         ( models, cmds ) =
             List.unzip (List.map (View.init app.name) app.views)
     in
-        ( { name = app.name, views = Array.fromList models }
+        ( { name = app.name, views = Array.fromList models, checked = False, open = False }
         , Cmd.batch <|
             Cmd.none
                 :: (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
@@ -40,11 +38,15 @@ init app =
 
 type Msg
     = ViewMsg Int View.Msg
+    | CheckboxToggle
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "C.App" msg of
+        CheckboxToggle ->
+            ( { model | checked = not model.checked }, Cmd.none )
+
         ViewMsg idx msg ->
             let
                 view =
@@ -68,8 +70,10 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div [ class [ RCSS.App ] ]
-        ([ h2 [] [ text model.name ]
-         , FA.amazon (Color.rgb 255 0 0) 24
+        ([ h2 []
+            [ input [ type' "checkbox", onClick CheckboxToggle ] []
+            , text model.name
+            ]
          ]
             ++ (imap
                     (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))
