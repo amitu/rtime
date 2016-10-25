@@ -11,6 +11,28 @@ app.ports.title.subscribe(function(title) {
     document.title = title + " • rtime"
 })
 
+app.ports.get_key.subscribe(function(key){
+    console.log("ports.get_key", key)
+    setTimeout(function(){
+        if (localStorage.hasOwnProperty(key)) {
+            app.ports.keyData.send([
+                key, [true, localStorage.getItem(key)]
+            ])
+        } else {
+            app.ports.keyData.send([key, [false, ""]])
+        }
+    }, 0)
+})
+
+app.ports.set_key.subscribe(function(val){
+    console.log("ports.set_key", val)
+    localStorage.setItem(val[0], val[1])
+})
+
+app.ports.clear_key.subscribe(function(key){
+    console.log("ports.clear_key", key)
+    localStorage.removeItem(key)
+})
 
 app.ports.get_graph.subscribe(function(val) {
     console.log("ports.get_graph", val)

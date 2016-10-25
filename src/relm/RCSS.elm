@@ -74,6 +74,7 @@ css =
               --            , marginLeft (px 30)
             , height (px 130)
             ]
+        , (.) PlusMore [ fontSize (px 14) ]
         ]
 
 

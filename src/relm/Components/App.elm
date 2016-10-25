@@ -13,6 +13,7 @@ import Api.Apps as Apps
 import Components.View as View
 import Helpers exposing (imap, iamap, class)
 import RCSS
+import Ports
 
 
 type VisibilityState
@@ -35,9 +36,13 @@ init app =
         ( models, cmds ) =
             List.unzip (List.map (View.init app.name) app.views)
     in
-        ( { name = app.name, views = Array.fromList models, state = Open, checkbox = False }
+        ( { name = app.name
+          , views = Array.fromList models
+          , state = Open
+          , checkbox = False
+          }
         , Cmd.batch <|
-            Cmd.none
+            (Ports.get_key (key app.name))
                 :: (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
         )
 
@@ -46,6 +51,12 @@ type Msg
     = ViewMsg Int View.Msg
     | CheckboxToggle
     | AppToggle
+    | KeyStatus ( String, ( Bool, String ) )
+
+
+key : String -> String
+key n =
+    "key_" ++ n
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,20 +68,47 @@ update msg model =
                     not model.checkbox
             in
                 if checkbox then
-                    ( { model | checkbox = checkbox, state = Checked }, Cmd.none )
+                    ( { model | checkbox = checkbox, state = Checked }
+                    , Ports.set_key ( key model.name, "Checked" )
+                    )
                 else
-                    ( { model | checkbox = checkbox, state = Closed }, Cmd.none )
+                    ( { model | checkbox = checkbox, state = Closed }
+                    , Ports.set_key ( key model.name, "Closed" )
+                    )
+
+        KeyStatus ( k, ( ok, v ) ) ->
+            if k /= (key model.name) || not ok then
+                ( model, Cmd.none )
+            else
+                case v of
+                    "Open" ->
+                        ( { model | checkbox = False, state = Open }, Cmd.none )
+
+                    "Closed" ->
+                        ( { model | checkbox = False, state = Closed }, Cmd.none )
+
+                    "Checked" ->
+                        ( { model | checkbox = True, state = Checked }, Cmd.none )
+
+                    v ->
+                        Debug.crash v
 
         AppToggle ->
             case model.state of
                 Open ->
-                    ( { model | state = Closed, checkbox = False }, Cmd.none )
+                    ( { model | state = Closed, checkbox = False }
+                    , Ports.set_key ( key model.name, "Closed" )
+                    )
 
                 Closed ->
-                    ( { model | state = Checked, checkbox = True }, Cmd.none )
+                    ( { model | state = Checked, checkbox = True }
+                    , Ports.set_key ( key model.name, "Checked" )
+                    )
 
                 Checked ->
-                    ( { model | state = Open, checkbox = False }, Cmd.none )
+                    ( { model | state = Open, checkbox = False }
+                    , Ports.set_key ( key model.name, "Open" )
+                    )
 
         ViewMsg idx msg ->
             let
@@ -122,10 +160,22 @@ view model =
                         )
                             ++ (let
                                     len =
-                                        (List.length (List.filter (.checked >> not) (Array.toList model.views)))
+                                        (List.length
+                                            (List.filter
+                                                (.checked >> not)
+                                                (Array.toList model.views)
+                                            )
+                                        )
                                 in
                                     if len > 0 then
-                                        [ span [ class [ RCSS.PlusMore ] ] [ text ("+ " ++ (toString len) ++ " more") ] ]
+                                        [ span [ class [ RCSS.PlusMore ] ]
+                                            [ text
+                                                ("+ "
+                                                    ++ (toString len)
+                                                    ++ " more"
+                                                )
+                                            ]
+                                        ]
                                     else
                                         [ text "" ]
                                )
@@ -136,4 +186,9 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        (iamap (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v)) model.views)
+        ((Ports.keyData KeyStatus)
+            :: (iamap
+                    (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v))
+                    model.views
+               )
+        )

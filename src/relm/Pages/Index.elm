@@ -34,7 +34,7 @@ type alias Model =
 
 init : Model
 init =
-    { apps = RD.NotAsked, timer = True, timerPeriod = 30, timerCurrent = 0 }
+    { apps = RD.NotAsked, timer = False, timerPeriod = 30, timerCurrent = 0 }
 
 
 type Msg
