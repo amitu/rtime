@@ -14,6 +14,9 @@ import Date.Extra.Config.Config_en_us as English
 port title : String -> Cmd a
 
 
+port reload : String -> Cmd a
+
+
 fdate : Date -> String
 fdate d =
     DE.format English.config DE.isoMsecFormat d

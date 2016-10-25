@@ -67,7 +67,7 @@ update msg model =
                         model.timerCurrent + 1
                 in
                     if current == model.timerPeriod then
-                        ( { model | timerCurrent = 0 }, Cmd.none )
+                        ( { model | timerCurrent = 0 }, Ports.reload "" )
                     else
                         ( { model | timerCurrent = current }, Cmd.none )
             else
