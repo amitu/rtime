@@ -1,7 +1,7 @@
 module Components.App exposing (..)
 
-import Html exposing (Html, text, ul, li, a, h2, div, input)
-import Html.Attributes exposing (type')
+import Html exposing (Html, text, ul, li, a, h2, div, input, span)
+import Html.Attributes exposing (type', checked)
 import Html.Events exposing (onClick)
 import Array exposing (Array)
 import Html.App
@@ -15,11 +15,17 @@ import Helpers exposing (imap, iamap, class)
 import RCSS
 
 
+type VisibilityState
+    = Open
+    | Closed
+    | Checked
+
+
 type alias Model =
     { name : String
     , views : Array View.Model
-    , checked : Bool
-    , open : Bool
+    , state : VisibilityState
+    , checkbox : Bool
     }
 
 
@@ -29,7 +35,7 @@ init app =
         ( models, cmds ) =
             List.unzip (List.map (View.init app.name) app.views)
     in
-        ( { name = app.name, views = Array.fromList models, checked = False, open = False }
+        ( { name = app.name, views = Array.fromList models, state = Open, checkbox = False }
         , Cmd.batch <|
             Cmd.none
                 :: (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
@@ -39,13 +45,32 @@ init app =
 type Msg
     = ViewMsg Int View.Msg
     | CheckboxToggle
+    | AppToggle
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "C.App" msg of
         CheckboxToggle ->
-            ( { model | checked = not model.checked }, Cmd.none )
+            let
+                checkbox =
+                    not model.checkbox
+            in
+                if checkbox then
+                    ( { model | checkbox = checkbox, state = Checked }, Cmd.none )
+                else
+                    ( { model | checkbox = checkbox, state = Closed }, Cmd.none )
+
+        AppToggle ->
+            case model.state of
+                Open ->
+                    ( { model | state = Closed, checkbox = False }, Cmd.none )
+
+                Closed ->
+                    ( { model | state = Checked, checkbox = True }, Cmd.none )
+
+                Checked ->
+                    ( { model | state = Open, checkbox = False }, Cmd.none )
 
         ViewMsg idx msg ->
             let
@@ -71,13 +96,30 @@ view : Model -> Html Msg
 view model =
     div [ class [ RCSS.App ] ]
         ([ h2 []
-            [ input [ type' "checkbox", onClick CheckboxToggle ] []
-            , text model.name
+            [ input
+                [ type' "checkbox"
+                , onClick CheckboxToggle
+                , checked model.checkbox
+                ]
+                []
+            , span [ onClick AppToggle ] [ text model.name ]
             ]
          ]
-            ++ (imap
-                    (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))
-                    (Array.toList model.views)
+            ++ (case model.state of
+                    Open ->
+                        (imap
+                            (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))
+                            (Array.toList model.views)
+                        )
+
+                    Closed ->
+                        []
+
+                    Checked ->
+                        (imap
+                            (\( i, v ) -> Html.App.map (ViewMsg i) (View.view v))
+                            (List.filter (.checked) (Array.toList model.views))
+                        )
                )
         )
 

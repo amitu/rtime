@@ -2,8 +2,8 @@ module Components.View exposing (..)
 
 -- elm.core
 
-import Html exposing (Html, text, ul, li, a, h3, div, input)
-import Html.Attributes exposing (style, type')
+import Html exposing (Html, text, ul, li, a, h3, div, input, span)
+import Html.Attributes exposing (style, type', checked)
 import Html.Events exposing (onClick)
 import Svg as S exposing (svg)
 import Svg.Attributes as S
@@ -41,6 +41,7 @@ type alias Model =
     , name : String
     , hosts : List String
     , graph : Bool
+    , checked : Bool
     }
 
 
@@ -51,6 +52,7 @@ init app view =
       , name = view.name
       , hosts = view.hosts
       , graph = False
+      , checked = False
       }
     , Cmd.none
     )
@@ -58,6 +60,7 @@ init app view =
 
 type Msg
     = ToggleGraph
+    | ToggleCheck
     | DateFetched Date.Date
     | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
 
@@ -65,20 +68,21 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "P.App" msg of
+        ToggleCheck ->
+            ( { model | checked = not model.checked }, Cmd.none )
+
         ToggleGraph ->
-            case model.graph of
-                True ->
-                    ( { model | graph = False }, Cmd.none )
+            if model.graph then
+                ( { model | graph = False }, Cmd.none )
+            else
+                ( { model | graph = True }
+                , case model.data of
+                    RD.NotAsked ->
+                        Task.perform never DateFetched Date.now
 
-                False ->
-                    ( { model | graph = True }
-                    , case model.data of
-                        RD.NotAsked ->
-                            Task.perform never DateFetched Date.now
-
-                        _ ->
-                            Cmd.none
-                    )
+                    _ ->
+                        Cmd.none
+                )
 
         DateFetched date ->
             ( { model | data = RD.Loading }
@@ -220,10 +224,10 @@ graph model =
 view : Model -> Html Msg
 view model =
     div [ class [ RCSS.View ] ]
-        [ h3 [ onClick ToggleGraph ]
-            [ input [ type' "checkbox" ] []
-            , input [ type' "checkbox" ] []
-            , text model.name
+        [ h3 []
+            [ input [ type' "checkbox", onClick ToggleCheck, checked model.checked ] []
+            , input [ type' "checkbox", onClick ToggleGraph, checked model.graph ] []
+            , span [ onClick ToggleGraph ] [ text model.name ]
             ]
         , (if model.graph then
             graph model
