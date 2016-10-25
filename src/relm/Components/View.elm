@@ -7,6 +7,7 @@ import Html.Attributes exposing (style, type', checked)
 import Html.Events exposing (onClick)
 import Svg as S exposing (svg)
 import Svg.Attributes as S
+import Svg.Events as S
 import Date
 import RemoteData as RD
 import Http
@@ -78,6 +79,8 @@ type Msg
     | DateFetched Date.Date
     | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
     | KeyData ( String, ( Bool, String ) )
+    | LineClick Int
+    | LineHover Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -94,6 +97,12 @@ update msg model =
                 )
               )
             )
+
+        LineClick ts ->
+            ( model, Cmd.none )
+
+        LineHover ts ->
+            ( model, Cmd.none )
 
         ToggleGraph ->
             if model.graph then
@@ -223,9 +232,26 @@ libar ( t, v ) =
             S.circle [ cx t, cy 0, r 1, (S.stroke "#6") ] []
 
         v ->
-            S.line
-                [ x1 t, y1 -0.5, x2 t, y2 v, (S.stroke "black"), (S.strokeWidth "1") ]
-                []
+            S.g [ S.onClick (LineClick t), S.onMouseOver (LineHover t) ]
+                [ S.line
+                    [ x1 t
+                    , y1 -0.5
+                    , x2 t
+                    , y2 65
+                    , (S.stroke "white")
+                    , (S.strokeWidth "1")
+                    ]
+                    []
+                , S.line
+                    [ x1 t
+                    , y1 -0.5
+                    , x2 t
+                    , y2 v
+                    , (S.stroke "black")
+                    , (S.strokeWidth "1")
+                    ]
+                    []
+                ]
 
 
 decals : ViewData -> List (Html Msg)
