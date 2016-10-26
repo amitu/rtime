@@ -96,5 +96,23 @@ iamap fn array =
         List.map fn (zip (range 0 length 1) (Array.toList array))
 
 
+twomap : (( a, a ) -> b) -> List a -> List b
+twomap fn list =
+    twomap0 fn list []
+
+
+twomap0 : (( a, a ) -> b) -> List a -> List b -> List b
+twomap0 fn lista listb =
+    case lista of
+        [] ->
+            listb
+
+        e1 :: [] ->
+            listb
+
+        e1 :: e2 :: tail ->
+            twomap0 fn (e2 :: tail) (fn ( e1, e2 ) :: listb)
+
+
 { id, class, classList } =
     Html.CssHelpers.withNamespace ""

@@ -24,7 +24,7 @@ import Date.Extra.Period as DP
 
 import Api.Apps as Apps
 import Ports
-import Helpers exposing (class)
+import Helpers exposing (class, twomap)
 import RCSS
 
 
@@ -269,12 +269,37 @@ decals data =
     ]
 
 
+s : a -> String
+s =
+    toString
+
+
+trapezoid : ( ( Int, Int ), ( Int, Int ) ) -> Html Msg
+trapezoid ( ( t1, v1o ), ( t2, v2o ) ) =
+    let
+        v1 =
+            Debug.log "v1" (64 - (Debug.log "v1o" v1o)) * 2
+
+        v2 =
+            Debug.log "v2" (64 - (Debug.log "v2o" v2o)) * 2
+
+        points =
+            ((s t1) ++ ",130 " ++ (s t2) ++ ",130 " ++ (s t2) ++ "," ++ (s v2) ++ " " ++ (s t1) ++ "," ++ (s v1))
+    in
+        S.polygon [ S.points <| Debug.log "points" points ] []
+
+
 graph : Model -> Html Msg
 graph model =
     case model.data of
         RD.Success data ->
             S.svg [ S.class "Graph", S.width "1026", S.height "130", S.viewBox "0 0 1026 130" ] <|
-                ((decals data) ++ List.map libar data.timings)
+                (decals data
+                    ++ if List.length data.timings < 2 then
+                        List.map libar data.timings
+                       else
+                        twomap trapezoid data.timings
+                )
 
         RD.Loading ->
             text "loading.."
