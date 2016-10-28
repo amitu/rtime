@@ -114,5 +114,23 @@ twomap0 fn lista listb =
             twomap0 fn (e2 :: tail) (fn ( e1, e2 ) :: listb)
 
 
+twoimap : (( Int, a, a ) -> b) -> List a -> List b
+twoimap fn list =
+    twoimap0 fn list [] 0
+
+
+twoimap0 : (( Int, a, a ) -> b) -> List a -> List b -> Int -> List b
+twoimap0 fn lista listb count =
+    case lista of
+        [] ->
+            listb
+
+        e1 :: [] ->
+            listb
+
+        e1 :: e2 :: tail ->
+            twoimap0 fn (e2 :: tail) (fn ( count, e1, e2 ) :: listb) (count + 1)
+
+
 { id, class, classList } =
     Html.CssHelpers.withNamespace ""

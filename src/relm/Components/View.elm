@@ -24,7 +24,7 @@ import Date.Extra.Period as DP
 
 import Api.Apps as Apps
 import Ports
-import Helpers exposing (class, twomap)
+import Helpers exposing (class, twoimap)
 import RCSS
 
 
@@ -43,6 +43,7 @@ type alias Model =
     , hosts : List String
     , graph : Bool
     , checked : Bool
+    , trap : Maybe Int
     }
 
 
@@ -54,6 +55,7 @@ init app view =
       , hosts = view.hosts
       , graph = False
       , checked = False
+      , trap = Nothing
       }
     , Cmd.batch
         (List.map
@@ -80,7 +82,8 @@ type Msg
     | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
     | KeyData ( String, ( Bool, String ) )
     | LineClick Int
-    | LineHover Int
+    | TrapMouseIn Int
+    | TrapMouseOut Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -101,8 +104,11 @@ update msg model =
         LineClick ts ->
             ( model, Cmd.none )
 
-        LineHover ts ->
-            ( model, Cmd.none )
+        TrapMouseIn ts ->
+            ( { model | trap = Just ts }, Cmd.none )
+
+        TrapMouseOut ts ->
+            ( { model | trap = Nothing }, Cmd.none )
 
         ToggleGraph ->
             if model.graph then
@@ -140,8 +146,8 @@ update msg model =
                 ""
                 (DP.add DP.Minute -10 date)
                 date
-                20
-                120
+                0
+                0
               )
             )
 
@@ -229,17 +235,17 @@ libar : ( Int, Int ) -> Html Msg
 libar ( t, v ) =
     case v of
         0 ->
-            S.circle [ cx t, cy 0, r 1, (S.stroke "#6") ] []
+            S.circle [ cx t, cy 0, r 1, S.stroke "#6" ] []
 
         v ->
-            S.g [ S.onClick (LineClick t), S.onMouseOver (LineHover t) ]
+            S.g [ S.onClick (LineClick t) ]
                 [ S.line
                     [ x1 t
                     , y1 -0.5
                     , x2 t
                     , y2 65
-                    , (S.stroke "white")
-                    , (S.strokeWidth "1")
+                    , S.stroke "white"
+                    , S.strokeWidth "1"
                     ]
                     []
                 , S.line
@@ -247,8 +253,8 @@ libar ( t, v ) =
                     , y1 -0.5
                     , x2 t
                     , y2 v
-                    , (S.stroke "black")
-                    , (S.strokeWidth "1")
+                    , S.stroke "black"
+                    , S.strokeWidth "1"
                     ]
                     []
                 ]
@@ -274,19 +280,51 @@ s =
     toString
 
 
-trapezoid : ( ( Int, Int ), ( Int, Int ) ) -> Html Msg
-trapezoid ( ( t1, v1o ), ( t2, v2o ) ) =
+trapezoid : Maybe Int -> ( Int, ( Int, Int ), ( Int, Int ) ) -> Html Msg
+trapezoid selected ( current, ( t1, v1o ), ( t2, v2o ) ) =
     let
         v1 =
-            Debug.log "v1" (64 - (Debug.log "v1o" v1o)) * 2
+            (64 - v1o) * 2
 
         v2 =
-            Debug.log "v2" (64 - (Debug.log "v2o" v2o)) * 2
+            (64 - v2o) * 2
 
         points =
             ((s t1) ++ ",130 " ++ (s t2) ++ ",130 " ++ (s t2) ++ "," ++ (s v2) ++ " " ++ (s t1) ++ "," ++ (s v1))
+
+        fill =
+            case selected of
+                Just selected ->
+                    if selected == current then
+                        S.fill "red"
+                    else
+                        S.fill "blue"
+
+                Nothing ->
+                    S.fill "blue"
     in
-        S.polygon [ S.points <| Debug.log "points" points ] []
+        S.g []
+            [ S.polygon
+                [ S.points points
+                , fill
+                  -- , S.onMouseOver (TrapMouseIn current)
+                  -- , S.onMouseOut (TrapMouseOut current)
+                ]
+                []
+              -- , S.circle
+              --    [ cx t2, cy v2o, r 1, S.stroke "#ff0000", S.fill "#ff0000" ]
+              --    []
+            , S.line
+                [ x1 t2
+                , y1 -0.5
+                , x2 t2
+                , y2 v2o
+                , S.stroke "red"
+                , S.strokeWidth "1"
+                , S.onClick (LineClick t2)
+                ]
+                []
+            ]
 
 
 graph : Model -> Html Msg
@@ -298,7 +336,7 @@ graph model =
                     ++ if List.length data.timings < 2 then
                         List.map libar data.timings
                        else
-                        twomap trapezoid data.timings
+                        twoimap (trapezoid model.trap) data.timings
                 )
 
         RD.Loading ->
