@@ -24,6 +24,7 @@ import Date.Extra.Period as DP
 
 import Api.Apps as Apps
 import Ports
+import Out
 import Helpers exposing (class, twoimap)
 import RCSS
 
@@ -82,11 +83,13 @@ type Msg
     | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
     | KeyData ( String, ( Bool, String ) )
     | LineClick Int
+    | GotJson Apps.JsonResp
+    | JsonFailed Http.Error
     | TrapMouseIn Int
     | TrapMouseOut Int
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
     case Debug.log "P.App" msg of
         ToggleCheck ->
@@ -99,21 +102,37 @@ update msg model =
                     "open"
                 )
               )
+            , Nothing
             )
 
         LineClick ts ->
-            ( model, Cmd.none )
+            case model.data of
+                RD.Success data ->
+                    ( model
+                    , Apps.getJson model.app model.name data.id ts JsonFailed GotJson
+                    , Just (Out.ShowJson "loading...")
+                    )
+
+                _ ->
+                    Debug.crash "impossible"
+
+        GotJson resp ->
+            ( model, Cmd.none, Just (Out.ShowJson resp.json) )
+
+        JsonFailed err ->
+            ( model, Cmd.none, Just (Out.ShowJson (toString err)) )
 
         TrapMouseIn ts ->
-            ( { model | trap = Just ts }, Cmd.none )
+            ( { model | trap = Just ts }, Cmd.none, Nothing )
 
         TrapMouseOut ts ->
-            ( { model | trap = Nothing }, Cmd.none )
+            ( { model | trap = Nothing }, Cmd.none, Nothing )
 
         ToggleGraph ->
             if model.graph then
                 ( { model | graph = False }
                 , Ports.set_key ( key2 model.app model.name, "" )
+                , Nothing
                 )
             else
                 ( { model | graph = True }
@@ -126,17 +145,18 @@ update msg model =
 
                     _ ->
                         Ports.set_key ( key2 model.app model.name, "open" )
+                , Nothing
                 )
 
         KeyData ( k, ( ok, v ) ) ->
             if not ok || v == "" then
-                ( model, Cmd.none )
+                ( model, Cmd.none, Nothing )
             else if k == key1 model.app model.name then
                 update ToggleCheck model
             else if k == key2 model.app model.name then
                 update ToggleGraph model
             else
-                ( model, Cmd.none )
+                ( model, Cmd.none, Nothing )
 
         DateFetched date ->
             ( { model | data = RD.Loading }
@@ -149,6 +169,7 @@ update msg model =
                 0
                 0
               )
+            , Nothing
             )
 
         ViewDataFetched ( err, ( id, app, view ), ( floor, ceiling ), list ) ->
@@ -165,15 +186,17 @@ update msg model =
                                     }
                           }
                         , Cmd.none
+                        , Nothing
                         )
 
                     msg ->
                         ( { model | data = RD.Failure (Http.UnexpectedPayload msg) }
                         , Cmd.none
+                        , Nothing
                         )
             else
                 -- no es para mi
-                ( model, Cmd.none )
+                ( model, Cmd.none, Nothing )
 
 
 subscriptions : Model -> Sub Msg

@@ -11,6 +11,7 @@ import Html.App
 
 import Api.Apps as Apps
 import Components.View as View
+import Out
 import Helpers exposing (imap, iamap, class)
 import RCSS
 import Ports
@@ -51,6 +52,7 @@ type Msg
     = ViewMsg Int View.Msg
     | CheckboxToggle
     | AppToggle
+    | ShowAll
     | KeyData ( String, ( Bool, String ) )
 
 
@@ -59,7 +61,7 @@ key n =
     "key_" ++ n
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
     case Debug.log "C.App" msg of
         CheckboxToggle ->
@@ -70,44 +72,55 @@ update msg model =
                 if checkbox then
                     ( { model | checkbox = checkbox, state = Checked }
                     , Ports.set_key ( key model.name, "Checked" )
+                    , Nothing
                     )
                 else
                     ( { model | checkbox = checkbox, state = Closed }
                     , Ports.set_key ( key model.name, "Closed" )
+                    , Nothing
                     )
 
         KeyData ( k, ( ok, v ) ) ->
             if k /= (key model.name) || not ok then
-                ( model, Cmd.none )
+                ( model, Cmd.none, Nothing )
             else
                 case v of
                     "Open" ->
-                        ( { model | checkbox = False, state = Open }, Cmd.none )
+                        ( { model | checkbox = False, state = Open }, Cmd.none, Nothing )
 
                     "Closed" ->
-                        ( { model | checkbox = False, state = Closed }, Cmd.none )
+                        ( { model | checkbox = False, state = Closed }, Cmd.none, Nothing )
 
                     "Checked" ->
-                        ( { model | checkbox = True, state = Checked }, Cmd.none )
+                        ( { model | checkbox = True, state = Checked }, Cmd.none, Nothing )
 
                     v ->
                         Debug.crash v
+
+        ShowAll ->
+            ( { model | state = Open, checkbox = False }
+            , Ports.set_key ( key model.name, "Open" )
+            , Nothing
+            )
 
         AppToggle ->
             case model.state of
                 Open ->
                     ( { model | state = Closed, checkbox = False }
                     , Ports.set_key ( key model.name, "Closed" )
+                    , Nothing
                     )
 
                 Closed ->
                     ( { model | state = Checked, checkbox = True }
                     , Ports.set_key ( key model.name, "Checked" )
+                    , Nothing
                     )
 
                 Checked ->
                     ( { model | state = Open, checkbox = False }
                     , Ports.set_key ( key model.name, "Open" )
+                    , Nothing
                     )
 
         ViewMsg idx msg ->
@@ -119,11 +132,12 @@ update msg model =
                     Maybe.map (\view -> View.update msg view) view
             in
                 case res of
-                    Just ( iview, icmd ) ->
+                    Just ( iview, icmd, omsg ) ->
                         ( { model
                             | views = Array.set idx iview model.views
                           }
                         , Cmd.map (ViewMsg idx) icmd
+                        , omsg
                         )
 
                     Nothing ->
@@ -179,7 +193,10 @@ view model =
                                         )
                                 in
                                     if len > 0 then
-                                        [ span [ class [ RCSS.PlusMore ] ]
+                                        [ span
+                                            [ class [ RCSS.PlusMore ]
+                                            , onClick ShowAll
+                                            ]
                                             [ text
                                                 ("+ "
                                                     ++ (toString len)

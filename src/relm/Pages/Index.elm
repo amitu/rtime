@@ -17,6 +17,7 @@ import Api.Apps as Apps
 import Components.App as App
 import Helpers exposing (imap, rdpimap, iamap, class)
 import RCSS
+import Out
 import Ports
 
 
@@ -29,12 +30,18 @@ type alias Model =
     , timerCurrent :
         Int
         -- number of seconds since start of timer
+    , json : Maybe String
     }
 
 
 init : Model
 init =
-    { apps = RD.NotAsked, timer = False, timerPeriod = 30, timerCurrent = 0 }
+    { apps = RD.NotAsked
+    , timer = False
+    , timerPeriod = 30
+    , timerCurrent = 0
+    , json = Nothing
+    }
 
 
 type Msg
@@ -44,6 +51,7 @@ type Msg
     | AppMsg Int App.Msg
     | TimerToggle
     | Tick Time.Time
+    | HideJson
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -87,6 +95,9 @@ update msg model =
         AppsFailed err ->
             ( { model | apps = RD.Failure err }, Cmd.none )
 
+        HideJson ->
+            ( { model | json = Nothing }, Cmd.none )
+
         AppMsg idx msg ->
             case model.apps of
                 RD.Success apps ->
@@ -98,12 +109,22 @@ update msg model =
                             Maybe.map (\app -> App.update msg app) app
                     in
                         case res of
-                            Just ( iapp, icmd ) ->
-                                ( { model
-                                    | apps = RD.Success (Array.set idx iapp apps)
-                                  }
-                                , Cmd.map (AppMsg idx) icmd
-                                )
+                            Just ( iapp, icmd, iout ) ->
+                                case iout of
+                                    Nothing ->
+                                        ( { model
+                                            | apps = RD.Success (Array.set idx iapp apps)
+                                          }
+                                        , Cmd.map (AppMsg idx) icmd
+                                        )
+
+                                    Just (Out.ShowJson j) ->
+                                        ( { model
+                                            | apps = RD.Success (Array.set idx iapp apps)
+                                            , json = Just j
+                                          }
+                                        , Cmd.map (AppMsg idx) icmd
+                                        )
 
                             Nothing ->
                                 Debug.crash "impossible"
@@ -115,6 +136,14 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
+        jsoncontent =
+            case model.json of
+                Nothing ->
+                    text ""
+
+                Just json ->
+                    div [] [ text json, div [ onClick HideJson ] [ text "X" ] ]
+
         content =
             case model.apps of
                 RD.Success apps ->
@@ -151,6 +180,7 @@ view model =
                 ]
              ]
                 ++ content
+                ++ [ jsoncontent ]
             )
 
 

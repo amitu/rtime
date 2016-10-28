@@ -6,7 +6,6 @@ import Json.Decode as JD exposing (string, list, int, (:=))
 import Json.Decode.Extra exposing ((|:))
 import Http
 import Task
-import Date exposing (Date)
 
 
 type alias App =
@@ -18,6 +17,12 @@ type alias App =
 type alias View =
     { name : String
     , hosts : List String
+    }
+
+
+type alias JsonResp =
+    { ts : String
+    , json : String
     }
 
 
@@ -35,9 +40,29 @@ app =
         |: ("views" := list view)
 
 
+jsonresp : JD.Decoder JsonResp
+jsonresp =
+    JD.succeed JsonResp
+        |: ("ts" := string)
+        |: ("json" := string)
+
+
 getAppList : (Http.Error -> a) -> (List App -> a) -> Cmd a
 getAppList failed success =
     Http.get (JD.at [ "result" ] (list app)) "/apps"
+        |> Task.perform failed success
+
+
+getJson : String -> String -> String -> Int -> (Http.Error -> a) -> (JsonResp -> a) -> Cmd a
+getJson app view id ts failed success =
+    (Http.get (JD.at [ "result" ] jsonresp) <|
+        Http.url "/json"
+            [ ( "app", app )
+            , ( "view", view )
+            , ( "id", id )
+            , ( "idx", (toString ts) )
+            ]
+    )
         |> Task.perform failed success
 
 
