@@ -17,7 +17,7 @@ def task_rtime():
             + glob.glob("src/rtime/*/*/*.go")
             + glob.glob("src/rtime/*/*.go")
         ),
-        "targets": ["bin/rtime"],
+        "targets": ["bin/rtime", "bin/rdump"],
     }
 
 

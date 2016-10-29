@@ -124,6 +124,7 @@ type App struct {
 }
 
 func ListApps() (apps []*App, err error) {
+	apps = make([]*App, 0)
 	err = boltdb.View(func(tx *bolt.Tx) error {
 		err := tx.ForEach(func(name []byte, appb *bolt.Bucket) error {
 			app := &App{Name: string(name), Views: []*View{}}
@@ -169,13 +170,11 @@ func GetJson(app, view, host, ts string) (json []byte, err error) {
 				return errors.New("unknown app")
 			}
 
-			dump(appb, app)
 			viewb := appb.Bucket([]byte(view))
 			if viewb == nil {
 				LOGGER.Error("unknown_view", "app", app, "view", view)
 				return errors.New("unknown view")
 			}
-			dump(appb, view)
 
 			if host == "" {
 				err := viewb.ForEach(func(name, value []byte) error {
@@ -184,9 +183,8 @@ func GetJson(app, view, host, ts string) (json []byte, err error) {
 						return nil
 					}
 
-					dump(viewb.Bucket(name), string(name))
 					fjson, err := get_json_from_host(viewb.Bucket(name), ts)
-					if err == nil {
+					if err != nil {
 						if err != ErrNotFound {
 							return errors.Trace(err)
 						}
@@ -210,7 +208,6 @@ func GetJson(app, view, host, ts string) (json []byte, err error) {
 					return errors.New("unknown host")
 				}
 
-				dump(hostb, host)
 				fjson, err := get_json_from_host(hostb, ts)
 				if err == nil && err != ErrNotFound {
 					return errors.Trace(err)
@@ -239,26 +236,12 @@ func get_json_from_host(hostb *bolt.Bucket, ts string) ([]byte, error) {
 		return nil, errors.New("host bucket has no jsons bucket")
 	}
 
-	dump(jsonb, "jsonb")
 	data := jsonb.Get([]byte(ts))
 	if data == nil {
 		return nil, ErrNotFound
 	}
 
 	return data, nil
-}
-
-func dump(b *bolt.Bucket, bname string) {
-	err := b.ForEach(func(name, value []byte) error {
-		LOGGER.Debug(bname, "name", string(name), "value", string(value))
-		return nil
-	})
-
-	if err != nil {
-		LOGGER.Error(
-			"dump_bucket failed", "err", errors.ErrorStack(err), "bucket", bname,
-		)
-	}
 }
 
 func UniqueID() string {
