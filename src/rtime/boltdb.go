@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	boltdb *bolt.DB
+	boltdb      *bolt.DB
+	ErrNotFound = errors.New("not found")
 )
 
 const (
@@ -158,6 +159,108 @@ func ListApps() (apps []*App, err error) {
 	return apps, errors.Trace(err)
 }
 
+func GetJson(app, view, host, ts string) (json []byte, err error) {
+	LOGGER.Info("GetJson", "app", app, "view", view, "host", host, "ts", ts)
+	err = errors.Trace(
+		boltdb.View(func(tx *bolt.Tx) error {
+			appb := tx.Bucket([]byte(app))
+			if appb == nil {
+				LOGGER.Error("unknown_app", "app", app)
+				return errors.New("unknown app")
+			}
+
+			dump(appb, app)
+			viewb := appb.Bucket([]byte(view))
+			if viewb == nil {
+				LOGGER.Error("unknown_view", "app", app, "view", view)
+				return errors.New("unknown view")
+			}
+			dump(appb, view)
+
+			if host == "" {
+				err := viewb.ForEach(func(name, value []byte) error {
+					if value != nil {
+						// should never happen
+						return nil
+					}
+
+					dump(viewb.Bucket(name), string(name))
+					fjson, err := get_json_from_host(viewb.Bucket(name), ts)
+					if err == nil {
+						if err != ErrNotFound {
+							return errors.Trace(err)
+						}
+						return nil
+					}
+
+					json = fjson
+
+					return nil
+				})
+
+				if err != nil {
+					return errors.Trace(err)
+				}
+			} else {
+				hostb := viewb.Bucket([]byte(host))
+				if hostb == nil {
+					LOGGER.Error(
+						"unknown_host", "app", app, "view", view, "host", host,
+					)
+					return errors.New("unknown host")
+				}
+
+				dump(hostb, host)
+				fjson, err := get_json_from_host(hostb, ts)
+				if err == nil && err != ErrNotFound {
+					return errors.Trace(err)
+				}
+
+				json = fjson
+
+				return nil
+			}
+
+			return nil
+		}),
+	)
+
+	if json == nil && err == nil {
+		err = ErrNotFound
+	}
+
+	return
+}
+
+func get_json_from_host(hostb *bolt.Bucket, ts string) ([]byte, error) {
+	// .Get([]byte(ts))
+	jsonb := hostb.Bucket([]byte("jsons"))
+	if jsonb == nil {
+		return nil, errors.New("host bucket has no jsons bucket")
+	}
+
+	dump(jsonb, "jsonb")
+	data := jsonb.Get([]byte(ts))
+	if data == nil {
+		return nil, ErrNotFound
+	}
+
+	return data, nil
+}
+
+func dump(b *bolt.Bucket, bname string) {
+	err := b.ForEach(func(name, value []byte) error {
+		LOGGER.Debug(bname, "name", string(name), "value", string(value))
+		return nil
+	})
+
+	if err != nil {
+		LOGGER.Error(
+			"dump_bucket failed", "err", errors.ErrorStack(err), "bucket", bname,
+		)
+	}
+}
+
 func UniqueID() string {
 	u := make([]byte, 16)
 	_, err := rand.Read(u)
@@ -169,6 +272,9 @@ func UniqueID() string {
 
 type ViewData struct {
 	timings []uint16
+	app     string
+	view    string
+	host    string
 	id      string
 	ceiling uint64
 	ids     []string  // not exported to clients
@@ -277,6 +383,9 @@ func GetViewData(
 	LOGGER.Debug("digested", "tdigest", tdigest, "idigest", idigest)
 	return &ViewData{
 		timings: tdigest,
+		app:     app,
+		view:    view,
+		host:    host,
 		ids:     idigest,
 		ceiling: ceiling,
 		id:      UniqueID(),

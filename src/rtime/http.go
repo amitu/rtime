@@ -40,6 +40,13 @@ func (c *VDCache) Add(vd *ViewData) {
 	c.cache[vd.id] = vd
 }
 
+func (c *VDCache) Get(id string) *ViewData {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.cache[id]
+}
+
 func (c *VDCache) Cleanup() {
 	c.Lock()
 	defer c.Unlock()
@@ -149,6 +156,44 @@ func viewsAPI(w http.ResponseWriter, r *http.Request) {
 	respond(w, views)
 }
 
+type JsonResp struct {
+	TS   string `json:"ts"`
+	JSON string `json:"json"`
+}
+
+func jsonAPI(w http.ResponseWriter, r *http.Request) {
+	idxs := r.FormValue("idx")
+	idx := int(0)
+	_, err := fmt.Sscanf(idxs, "%d", &idx)
+	if err != nil || idx < 0 || idx > 1024 {
+		reject(w, "invalid idx")
+		LOGGER.Warn("invalid_idx", "idx", idxs, "err", errors.ErrorStack(err))
+		return
+	}
+
+	rd := cache.Get(r.FormValue("id"))
+	if rd == nil {
+		reject(w, "invalid id")
+		LOGGER.Warn("invalid_id", "id", r.FormValue("id"))
+		return
+	}
+
+	if idx > len(rd.timings)-1 {
+		reject(w, "invalid idx")
+		LOGGER.Warn("invalid_idx", "idx", idx, "len", len(rd.ids))
+		return
+	}
+
+	data, err := GetJson(rd.app, rd.view, rd.host, rd.ids[idx])
+	if err != nil {
+		LOGGER.Error("get_json_error", "err", errors.ErrorStack(err))
+		reject(w, errors.ErrorStack(err))
+		return
+	}
+
+	respond(w, &JsonResp{TS: rd.ids[idx], JSON: string(data)})
+}
+
 func viewAPI(w http.ResponseWriter, r *http.Request) {
 	app := r.FormValue("app")
 	if app == "" {
@@ -235,6 +280,7 @@ func ListenAndServe(listen string) {
 	http.HandleFunc("/apps", appsAPI)
 	http.HandleFunc("/views", viewsAPI)
 	http.HandleFunc("/view", viewAPI)
+	http.HandleFunc("/json", jsonAPI)
 	http.HandleFunc("/", elmPage)
 
 	LOGGER.Info("http_server_starting", "listen", listen)
