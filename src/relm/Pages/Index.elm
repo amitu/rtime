@@ -1,4 +1,4 @@
-module Pages.Index exposing (..)
+module Pages.Index exposing (Model, Msg(..), init, update, view, subscriptions)
 
 import Html exposing (Html, text, ul, li, a, h1, div, input)
 import Html.Attributes exposing (type', checked)

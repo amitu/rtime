@@ -1,4 +1,4 @@
-module Components.View exposing (..)
+module Components.View exposing (Model, Msg(..), init, update, view, subscriptions)
 
 -- elm.core
 

@@ -1,4 +1,4 @@
-module Components.App exposing (..)
+module Components.App exposing (Model, Msg(..), init, update, view, subscriptions)
 
 import Html exposing (Html, text, ul, li, a, h2, div, input, span)
 import Html.Attributes exposing (type', checked)
