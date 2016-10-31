@@ -15,6 +15,8 @@ type CssClasses
     | HMenu
     | Header
     | View
+    | WindowSelector
+    | WindowError
     | PlusMore
 
 
@@ -75,6 +77,26 @@ css =
             , height (px 130)
             ]
         , (.) PlusMore [ fontSize (px 14) ]
+        , (.) WindowError
+            [ border3 (px 1) solid (hex "ff0000")
+            ]
+        , (.) WindowSelector
+            [ display inlineBlock
+            , right zero
+            , top (px 37)
+            , position absolute
+            , textAlign right
+            , border3 (px 1) solid (hex "979797")
+            , padding2 zero (px 4)
+            , descendants
+                [ input
+                    [ display inlineBlock
+                    , width (px 100)
+                    , marginLeft (px 3)
+                    , textAlign right
+                    ]
+                ]
+            ]
         ]
 
 

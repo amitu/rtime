@@ -47,6 +47,9 @@ port get_key : String -> Cmd a
 port set_key : ( String, String ) -> Cmd a
 
 
+port set_keys : List ( String, String ) -> Cmd a
+
+
 port clear_key : String -> Cmd a
 
 

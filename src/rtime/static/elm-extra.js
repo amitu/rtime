@@ -55,6 +55,13 @@ app.ports.set_key.subscribe(function(val){
     localStorage.setItem(val[0], val[1])
 })
 
+app.ports.set_keys.subscribe(function(vals){
+    console.log("ports.set_key", val)
+    for (var i = 0; i < vals.length; i++) {
+        var val = vals[i];
+        localStorage.setItem(val[0], val[1])
+    }
+})
 
 app.ports.clear_key.subscribe(function(key){
     console.log("ports.clear_key", key)

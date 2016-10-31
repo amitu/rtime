@@ -1,8 +1,8 @@
 module Pages.Index exposing (Model, Msg(..), init, update, view, subscriptions)
 
-import Html exposing (Html, text, ul, li, a, h1, div, input)
-import Html.Attributes exposing (type', checked)
-import Html.Events exposing (onClick)
+import Html exposing (Html, text, ul, li, a, h1, div, input, label)
+import Html.Attributes exposing (type', checked, value)
+import Html.Events exposing (onClick, onBlur, onInput)
 import Html.App
 import RemoteData as RD
 import Http
@@ -34,7 +34,11 @@ type alias Model =
         -- number of seconds since start of timer
     , json : Maybe String
     , floor : Int
+    , floorI : String
+    , floorE : Bool
     , ceiling : Int
+    , ceilingI : String
+    , ceilingE : Bool
     , globalLevel : Bool
     , start : Maybe Date
     , end : Maybe Date
@@ -49,9 +53,13 @@ init =
     , timerCurrent = 0
     , json = Nothing
     , floor = 0
+    , floorI = "0"
+    , floorE = False
     , ceiling =
         -- 5 sec
         5000000000
+    , ceilingI = "5s"
+    , ceilingE = False
     , globalLevel = True
     , end = Nothing
     , start = Nothing
@@ -68,6 +76,10 @@ type Msg
     | HideJson
     | KeysData (List ( String, ( Bool, String ) ))
     | ToggleGlobalLevel
+    | OnFloor String
+    | CommitFloor
+    | OnCeiling String
+    | CommitCeiling
 
 
 updateLevelsForApps : Model -> Cmd Msg -> ( Model, Cmd Msg )
@@ -85,6 +97,46 @@ updateWindow model =
     ( model, Cmd.none )
 
 
+parseInt : String -> Int -> ( Int, Bool )
+parseInt val fac =
+    let
+        res =
+            String.toInt val
+    in
+        case res of
+            Err err ->
+                ( 0, False )
+
+            Ok i ->
+                ( i * fac, True )
+
+
+parseTime : String -> ( Int, Bool )
+parseTime val =
+    if String.endsWith "ns" val then
+        parseInt (String.dropRight 2 val) 1
+    else if String.endsWith "us" val then
+        parseInt (String.dropRight 2 val) 1000
+    else if String.endsWith "ms" val then
+        parseInt (String.dropRight 2 val) 1000000
+    else if String.endsWith "s" val then
+        parseInt (String.dropRight 1 val) 1000000000
+    else if String.endsWith "sec" val then
+        parseInt (String.dropRight 3 val) 1000000000
+    else if String.endsWith "m" val then
+        parseInt (String.dropRight 1 val) 60000000000
+    else if String.endsWith "min" val then
+        parseInt (String.dropRight 3 val) 60000000000
+    else if String.endsWith "mins" val then
+        parseInt (String.dropRight 4 val) 60000000000
+    else if String.endsWith "hr" val then
+        parseInt (String.dropRight 2 val) 3600000000000
+    else if String.endsWith "hrs" val then
+        parseInt (String.dropRight 5 val) 3600000000000
+    else
+        parseInt val 1000000000
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case Debug.log "P.Index" msg of
@@ -95,7 +147,9 @@ update msg model =
                 , Ports.get_keys
                     [ "index__global_level"
                     , "index__floor"
+                    , "index__floor_i"
                     , "index__ceiling"
+                    , "index__ceiling_i"
                     , "index__timer"
                     ]
                 ]
@@ -107,12 +161,46 @@ update msg model =
             )
 
         ToggleGlobalLevel ->
-            -- TODO: store it in local store
-            -- TODO: update all views -- how?
             updateLevelsForApps { model | globalLevel = not model.globalLevel }
                 (Ports.set_key
                     ( "index__global_level", (toString <| not model.globalLevel) )
                 )
+
+        OnFloor val ->
+            let
+                ( v, ok ) =
+                    parseTime val
+            in
+                if ok then
+                    ( { model | floor = v, floorI = val, floorE = False }
+                    , Ports.set_keys
+                        [ ( "index__floor", (toString v) )
+                        , ( "index__floor_i", val )
+                        ]
+                    )
+                else
+                    ( { model | floorI = val, floorE = True }, Cmd.none )
+
+        OnCeiling val ->
+            let
+                ( v, ok ) =
+                    parseTime val
+            in
+                if ok then
+                    ( { model | ceiling = v, ceilingI = val, ceilingE = False }
+                    , Ports.set_keys
+                        [ ( "index__ceiling", (toString v) )
+                        , ( "index__ceiling_i", val )
+                        ]
+                    )
+                else
+                    ( { model | ceilingI = val, ceilingE = True }, Cmd.none )
+
+        CommitFloor ->
+            ( model, Cmd.none )
+
+        CommitCeiling ->
+            ( model, Cmd.none )
 
         Tick _ ->
             if model.timer then
@@ -164,7 +252,10 @@ update msg model =
                                     |> Result.toMaybe
                                     |> Maybe.withDefault 0
                                 )
+                            , floorE = False
                         }
+                    else if k == "index__floor_i" then
+                        { model | floorI = v }
                     else if k == "index__ceiling" then
                         { model
                             | ceiling =
@@ -172,7 +263,11 @@ update msg model =
                                     |> Result.toMaybe
                                     |> Maybe.withDefault 5000000000
                                 )
+                            , ceilingE = False
+                            , ceilingI = v ++ "ns"
                         }
+                    else if k == "index__ceiling_i" then
+                        { model | ceilingI = v }
                     else
                         model
                 )
@@ -219,7 +314,36 @@ update msg model =
 windowSelector : Model -> Html Msg
 windowSelector model =
     if model.globalLevel then
-        text "window"
+        div [ class [ RCSS.WindowSelector ] ]
+            [ div
+                [ if model.ceilingE then
+                    class [ RCSS.WindowError ]
+                  else
+                    class []
+                ]
+                [ label [] [ text "Ceiling" ]
+                , input
+                    [ value model.ceilingI
+                    , onInput OnCeiling
+                    , onBlur CommitCeiling
+                    ]
+                    []
+                ]
+            , div
+                [ if model.floorE then
+                    class [ RCSS.WindowError ]
+                  else
+                    class []
+                ]
+                [ label [] [ text "Floor" ]
+                , input
+                    [ value model.floorI
+                    , onInput OnFloor
+                    , onBlur CommitFloor
+                    ]
+                    []
+                ]
+            ]
     else
         text ""
 
