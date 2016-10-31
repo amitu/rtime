@@ -45,11 +45,14 @@ type alias Model =
     , graph : Bool
     , checked : Bool
     , trap : Maybe Int
+    , globalFloor : Int
+    , globalCeiling : Int
+    , globalLevels : Bool
     }
 
 
-init : String -> Apps.View -> ( Model, Cmd Msg )
-init app view =
+init : Int -> Int -> Bool -> String -> Apps.View -> ( Model, Cmd Msg )
+init floor ceiling global app view =
     ( { data = RD.NotAsked
       , app = app
       , name = view.name
@@ -57,6 +60,9 @@ init app view =
       , graph = False
       , checked = False
       , trap = Nothing
+      , globalFloor = floor
+      , globalCeiling = ceiling
+      , globalLevels = global
       }
     , Cmd.batch
         (List.map
@@ -64,6 +70,11 @@ init app view =
             [ key1, key2 ]
         )
     )
+
+
+updateGlobalLevels : Int -> Int -> Bool -> Model -> ( Model, Cmd Msg )
+updateGlobalLevels floor ceiling global model =
+    ( model, Cmd.none )
 
 
 key1 : String -> String -> String

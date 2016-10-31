@@ -31,11 +31,11 @@ type alias Model =
     }
 
 
-init : Apps.App -> ( Model, Cmd Msg )
-init app =
+init : Int -> Int -> Bool -> Apps.App -> ( Model, Cmd Msg )
+init floor ceiling global app =
     let
         ( models, cmds ) =
-            List.unzip (List.map (View.init app.name) app.views)
+            List.unzip (List.map (View.init floor ceiling global app.name) app.views)
     in
         ( { name = app.name
           , views = Array.fromList models
@@ -59,6 +59,13 @@ type Msg
 key : String -> String
 key n =
     "key_" ++ n
+
+
+
+--updateGlobalLevels : Int -> Int -> Bool -> Model -> ( Model, List (Cmd Msg) )
+--updateGlobalLevels floor ceiling global model =
+--    ( model, Array.fromList )
+--
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )

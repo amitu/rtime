@@ -30,6 +30,25 @@ app.ports.get_key.subscribe(function(key){
     }, 0)
 })
 
+app.ports.get_keys.subscribe(function(keys){
+    console.log("ports.get_keys", keys)
+    setTimeout(function(){
+        var kd = [];
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+
+            if (localStorage.hasOwnProperty(key)) {
+                kd.push([
+                    key, [true, localStorage.getItem(key)]
+                ])
+            } else {
+                kd.push([key, [false, ""]])
+            }
+        }
+
+        app.ports.keysData.send(kd)
+    }, 0)
+})
 
 app.ports.set_key.subscribe(function(val){
     console.log("ports.set_key", val)

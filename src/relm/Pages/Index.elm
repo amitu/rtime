@@ -7,7 +7,8 @@ import Html.App
 import RemoteData as RD
 import Http
 import Array exposing (Array)
-import Time
+import Time exposing (Time)
+import Date exposing (Date)
 
 
 -- extra
@@ -31,6 +32,11 @@ type alias Model =
         Int
         -- number of seconds since start of timer
     , json : Maybe String
+    , floor : Int
+    , ceiling : Int
+    , globalLevel : Bool
+    , start : Maybe Date
+    , end : Maybe Date
     }
 
 
@@ -41,6 +47,13 @@ init =
     , timerPeriod = 30
     , timerCurrent = 0
     , json = Nothing
+    , floor = 0
+    , ceiling =
+        -- 1 sec
+        1000000000
+    , globalLevel = True
+    , end = Nothing
+    , start = Nothing
     }
 
 
@@ -52,6 +65,23 @@ type Msg
     | TimerToggle
     | Tick Time.Time
     | HideJson
+    | KeysData (List ( String, ( Bool, String ) ))
+    | ToggleGlobalLevel
+
+
+updateLevelsForApps : Model -> ( Model, Cmd Msg )
+updateLevelsForApps model =
+    ( model, Cmd.none )
+
+
+refreshMaps : Model -> ( Model, Cmd Msg )
+refreshMaps model =
+    ( model, Cmd.none )
+
+
+updateWindow : Model -> ( Model, Cmd Msg )
+updateWindow model =
+    ( model, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -60,13 +90,23 @@ update msg model =
         Viewed ->
             ( { model | apps = RD.Loading }
             , Cmd.batch
-                [ Apps.getAppList AppsFailed AppsFetched
-                , Ports.title "Index"
+                [ Ports.title "welcome"
+                , Ports.get_keys
+                    [ "index__global_level"
+                    , "index__floor"
+                    , "index__ceiling"
+                    , "index__timer"
+                    ]
                 ]
             )
 
         TimerToggle ->
             ( { model | timer = not model.timer }, Cmd.none )
+
+        ToggleGlobalLevel ->
+            -- TODO: store it in local store
+            -- TODO: update all views -- how?
+            updateLevelsForApps { model | globalLevel = not model.globalLevel }
 
         Tick _ ->
             if model.timer then
@@ -75,7 +115,7 @@ update msg model =
                         model.timerCurrent + 1
                 in
                     if current == model.timerPeriod then
-                        ( { model | timerCurrent = 0 }, Ports.reload "" )
+                        refreshMaps { model | timerCurrent = 0 }
                     else
                         ( { model | timerCurrent = current }, Cmd.none )
             else
@@ -84,7 +124,11 @@ update msg model =
         AppsFetched apps ->
             let
                 ( models, cmds ) =
-                    List.unzip (List.map App.init apps)
+                    List.unzip
+                        (List.map
+                            (App.init model.floor model.ceiling model.globalLevel)
+                            apps
+                        )
             in
                 ( { model
                     | apps = RD.Success (Array.fromList models)
@@ -97,6 +141,9 @@ update msg model =
 
         HideJson ->
             ( { model | json = Nothing }, Cmd.none )
+
+        KeysData list ->
+            ( model, Apps.getAppList AppsFailed AppsFetched )
 
         AppMsg idx msg ->
             case model.apps of
@@ -131,6 +178,14 @@ update msg model =
 
                 _ ->
                     Debug.crash "impossible"
+
+
+windowSelector : Model -> Html Msg
+windowSelector model =
+    if model.globalLevel then
+        text "window"
+    else
+        text ""
 
 
 view : Model -> Html Msg
@@ -175,7 +230,8 @@ view model =
                                 "paused"
                             )
                         ]
-                    , input [ type' "checkbox" ] []
+                    , input [ type' "checkbox", onClick ToggleGlobalLevel, checked model.globalLevel ] []
+                    , windowSelector model
                     ]
                 ]
              ]
@@ -192,6 +248,7 @@ subscriptions model =
           else
             []
          )
+            ++ [ Ports.keysData KeysData ]
             ++ (case model.apps of
                     RD.Success apps ->
                         (iamap
