@@ -173,8 +173,6 @@ parseTime val =
         parseInt (String.dropRight 2 val) 1000
     else if String.endsWith "ms" val then
         parseInt (String.dropRight 2 val) 1000000
-    else if String.endsWith "s" val then
-        parseInt (String.dropRight 1 val) 1000000000
     else if String.endsWith "sec" val then
         parseInt (String.dropRight 3 val) 1000000000
     else if String.endsWith "m" val then
@@ -187,6 +185,8 @@ parseTime val =
         parseInt (String.dropRight 2 val) 3600000000000
     else if String.endsWith "hrs" val then
         parseInt (String.dropRight 5 val) 3600000000000
+    else if String.endsWith "s" val then
+        parseInt (String.dropRight 1 val) 1000000000
     else
         parseInt val 1000000000
 
