@@ -2,8 +2,7 @@ import os
 import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(BASE_DIR, '../rtimeit'))
-# print(sys.path)
+sys.path.append(os.path.join(BASE_DIR, '../pyrtime'))
 
 SECRET_KEY = 'secret'
 DEBUG = True
@@ -23,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django.contrib.staticfiles',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -49,3 +49,43 @@ TEMPLATES = [
          },
      },
  ]
+
+STATIC_URL = '/static/'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': (
+                '%(levelname)s %(asctime)s %(funcName)s %(pathname)s '
+                '%(message)s %(name)s'
+            )
+        },
+    },
+    'handlers': {
+        'null': {
+            'level': 'DEBUG',
+            'class': 'logging.NullHandler',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        # 'django.db': {
+        #     'handlers': ['console'],
+        #     'level': 'DEBUG',
+        #     'propagate': False,
+        # },
+        '': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+    }
+}
+
+RTIME_ADDRESS = "127.0.0.1", 6543

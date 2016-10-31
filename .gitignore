@@ -46,3 +46,6 @@ db.sqlite3
 .coverage
 htmlcov
 
+*.egg
+*.egg-info
+node_modules

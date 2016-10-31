@@ -2,6 +2,8 @@ from functools import wraps
 
 from django.utils.decorators import available_attrs
 
+from rtime.utils import add_frame_data
+
 
 def request_wrapper(meth):
     @wraps(meth, assigned=available_attrs(meth))
@@ -72,6 +74,6 @@ def response_wrapper(meth):
     return process_response
 
 
-def execute(self, sql, params):
-    print(sql, params)
+def execute(self, sql, params=None):
+    add_frame_data(query=sql, query_params=params)
     return self._execute(sql, params)

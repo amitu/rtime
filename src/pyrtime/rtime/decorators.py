@@ -19,8 +19,8 @@ def timeit(func_or_name):
             try:
                 return func(*args, **kwargs)
             finally:
-                ms = round(1000 * (time.time() - start), 4)
-                utils.add_frame_data(time_taken=ms)
+                elapsed = int(round(1000 * 1000 * 1000 * (time.time() - start)))  # ns
+                utils.add_frame_data(time_taken=elapsed)
                 utils.pop_frame()
         return wrapper
 

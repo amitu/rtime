@@ -31,7 +31,7 @@ def test_single_call():
     assert_similar_structure(utils.stop(), {
         'name': 'name',
         'stack': [
-            {'name': 'tests.tests.f1', 'time_taken': 0.0}
+            {'name': 'tests.tests.f1', 'time_taken': 0}
         ]
     })
 
@@ -43,8 +43,8 @@ def test_single_call_multi_func():
     assert_similar_structure(utils.stop(), {
         'name': 'name',
         'stack': [
-            {'name': 'tests.tests.f1', 'time_taken': 0.0},
-            {'name': 'func2', 'time_taken': 0.0},
+            {'name': 'tests.tests.f1', 'time_taken': 0},
+            {'name': 'func2', 'time_taken': 0},
         ]
     })
 
@@ -56,7 +56,7 @@ def test_delay_init():
     assert_similar_structure(utils.stop(), {
         'name': 'name',
         'stack': [
-            {'name': 'func2', 'time_taken': 0.0},
+            {'name': 'func2', 'time_taken': 0},
         ]
     })
 
@@ -71,7 +71,7 @@ def test_delay_name_set():
         'name': 'new_name',
         'key': 'value',
         'stack': [
-            {'name': 'func2', 'time_taken': 0.0},
+            {'name': 'func2', 'time_taken': 0},
         ]
     })
 
@@ -87,21 +87,21 @@ def test_recursion():
         'stack': [
             {
                 'name': 'tests.tests.f1',
-                'time_taken': 0.0,
+                'time_taken': 0,
                 'stack': [
                     {
                         'name': 'func2',
-                        'time_taken': 0.0,
+                        'time_taken': 0,
                         'stack': [
                             {
                                 'name': 'tests.tests.f1',
-                                'time_taken': 0.0,
+                                'time_taken': 0,
                             }
                         ]
                     },
                     {
                         'name': 'func2',
-                        'time_taken': 0.0,
+                        'time_taken': 0,
                     }
                 ]
             },
@@ -121,41 +121,41 @@ def test_recursion_multi_func():
         'stack': [
             {
                 'name': 'tests.tests.f1',
-                'time_taken': 0.0,
+                'time_taken': 0,
                 'stack': [
                     {
                         'name': 'func2',
-                        'time_taken': 0.0,
+                        'time_taken': 0,
                         'stack': [
                             {
                                 'name': 'tests.tests.f1',
-                                'time_taken': 0.0,
+                                'time_taken': 0,
                             }
                         ]
                     },
                     {
                         'name': 'func2',
-                        'time_taken': 0.0,
+                        'time_taken': 0,
                     }
                 ]
             },
             {
                 'name': 'func2',
-                'time_taken': 0.0,
+                'time_taken': 0,
                 'stack': [
                     {
                         'name': 'tests.tests.f1',
-                        'time_taken': 0.0,
+                        'time_taken': 0,
                         'stack': [
                             {
                                 'name': 'func2',
-                                'time_taken': 0.0,
+                                'time_taken': 0,
                             }
                         ]
                     },
                     {
                         'name': 'tests.tests.f1',
-                        'time_taken': 0.0,
+                        'time_taken': 0,
                     }
                 ]
             },
