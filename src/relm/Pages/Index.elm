@@ -9,6 +9,7 @@ import Http
 import Array exposing (Array)
 import Time exposing (Time)
 import Date exposing (Date)
+import Date.Extra.Duration as Duration exposing (Duration, zeroDelta)
 import String
 
 
@@ -40,8 +41,12 @@ type alias Model =
     , ceilingI : String
     , ceilingE : Bool
     , globalLevel : Bool
+    , absoluteWindow : Bool
     , start : Maybe Date
+    , startO : Duration
+    , endO : Duration
     , end : Maybe Date
+    , now : Maybe Date
     }
 
 
@@ -63,6 +68,10 @@ init =
     , globalLevel = True
     , end = Nothing
     , start = Nothing
+    , absoluteWindow = False
+    , startO = Duration.Delta { zeroDelta | minute = -10 }
+    , endO = Duration.Delta zeroDelta
+    , now = Nothing
     }
 
 
@@ -82,19 +91,64 @@ type Msg
     | CommitCeiling
 
 
-updateLevelsForApps : Model -> Cmd Msg -> ( Model, Cmd Msg )
-updateLevelsForApps model cmd =
-    ( model, cmd )
+updateApps :
+    (App.Model -> ( App.Model, Cmd App.Msg ))
+    -> Model
+    -> Cmd Msg
+    -> ( Model, Cmd Msg )
+updateApps fn model cmd =
+    case model.apps of
+        RD.Success apps ->
+            let
+                result =
+                    (Array.map fn apps)
+
+                apps =
+                    Array.map fst result
+
+                cmds =
+                    iamap (\( i, ( a, c ) ) -> Cmd.map (AppMsg i) c) result
+            in
+                ( { model | apps = RD.Success apps }, Cmd.batch (cmd :: cmds) )
+
+        _ ->
+            ( model, cmd )
 
 
-refreshMaps : Model -> ( Model, Cmd Msg )
-refreshMaps model =
-    ( model, Cmd.none )
+updateLevels : Model -> Cmd Msg -> ( Model, Cmd Msg )
+updateLevels model cmd =
+    updateApps (App.updateLevels model.floor model.ceiling model.globalLevel) model cmd
 
 
 updateWindow : Model -> ( Model, Cmd Msg )
 updateWindow model =
-    ( model, Cmd.none )
+    let
+        ( start, end ) =
+            window model
+    in
+        updateApps (App.updateWindow start end) model Cmd.none
+
+
+withCrash : Maybe a -> a
+withCrash maybe =
+    case maybe of
+        Just v ->
+            v
+
+        Nothing ->
+            Debug.crash "Impossible"
+
+
+window : Model -> ( Date, Date )
+window model =
+    if model.absoluteWindow then
+        ( withCrash model.start, withCrash model.end )
+    else
+        let
+            now =
+                withCrash model.now
+        in
+            ( Duration.add model.startO 1 now, Duration.add model.endO 1 now )
 
 
 parseInt : String -> Int -> ( Int, Bool )
@@ -161,7 +215,7 @@ update msg model =
             )
 
         ToggleGlobalLevel ->
-            updateLevelsForApps { model | globalLevel = not model.globalLevel }
+            updateLevels { model | globalLevel = not model.globalLevel }
                 (Ports.set_key
                     ( "index__global_level", (toString <| not model.globalLevel) )
                 )
@@ -197,10 +251,10 @@ update msg model =
                     ( { model | ceilingI = val, ceilingE = True }, Cmd.none )
 
         CommitFloor ->
-            ( model, Cmd.none )
+            updateWindow model
 
         CommitCeiling ->
-            ( model, Cmd.none )
+            updateWindow model
 
         Tick _ ->
             if model.timer then
@@ -209,7 +263,10 @@ update msg model =
                         model.timerCurrent + 1
                 in
                     if current == model.timerPeriod then
-                        refreshMaps { model | timerCurrent = 0 }
+                        -- TODO: not so easy, if windows are abs, then ok, else
+                        -- get current time, calcualte new window and then call
+                        -- update window
+                        updateWindow { model | timerCurrent = 0 }
                     else
                         ( { model | timerCurrent = current }, Cmd.none )
             else
@@ -291,14 +348,18 @@ update msg model =
                                 case iout of
                                     Nothing ->
                                         ( { model
-                                            | apps = RD.Success (Array.set idx iapp apps)
+                                            | apps =
+                                                RD.Success
+                                                    (Array.set idx iapp apps)
                                           }
                                         , Cmd.map (AppMsg idx) icmd
                                         )
 
                                     Just (Out.ShowJson j) ->
                                         ( { model
-                                            | apps = RD.Success (Array.set idx iapp apps)
+                                            | apps =
+                                                RD.Success
+                                                    (Array.set idx iapp apps)
                                             , json = Just j
                                           }
                                         , Cmd.map (AppMsg idx) icmd
@@ -381,16 +442,30 @@ view model =
                 [ h1 [] [ text "rtime: Coverfox" ]
                 , div [ class [ RCSS.HMenu ] ]
                     [ a [] [ text "Last 10 Minutes" ]
-                    , input [ type' "checkbox", checked model.timer, onClick TimerToggle ] []
+                    , input
+                        [ type' "checkbox"
+                        , checked model.timer
+                        , onClick TimerToggle
+                        ]
+                        []
                     , a [ onClick TimerToggle ]
                         [ text
                             (if model.timer then
-                                ((toString (model.timerPeriod - model.timerCurrent)) ++ "s")
+                                ((toString
+                                    (model.timerPeriod - model.timerCurrent)
+                                 )
+                                    ++ "s"
+                                )
                              else
                                 "paused"
                             )
                         ]
-                    , input [ type' "checkbox", onClick ToggleGlobalLevel, checked model.globalLevel ] []
+                    , input
+                        [ type' "checkbox"
+                        , onClick ToggleGlobalLevel
+                        , checked model.globalLevel
+                        ]
+                        []
                     , windowSelector model
                     ]
                 ]
@@ -412,7 +487,9 @@ subscriptions model =
             ++ (case model.apps of
                     RD.Success apps ->
                         (iamap
-                            (\( i, a ) -> Sub.map (AppMsg i) (App.subscriptions a))
+                            (\( i, a ) ->
+                                Sub.map (AppMsg i) (App.subscriptions a)
+                            )
                             apps
                         )
 

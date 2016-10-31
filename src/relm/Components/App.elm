@@ -1,10 +1,21 @@
-module Components.App exposing (Model, Msg(..), init, update, view, subscriptions)
+module Components.App
+    exposing
+        ( Model
+        , Msg(..)
+        , init
+        , update
+        , view
+        , subscriptions
+        , updateLevels
+        , updateWindow
+        )
 
 import Html exposing (Html, text, ul, li, a, h2, div, input, span)
 import Html.Attributes exposing (type', checked)
 import Html.Events exposing (onClick)
 import Array exposing (Array)
 import Html.App
+import Date exposing (Date)
 
 
 -- ours
@@ -35,7 +46,11 @@ init : Int -> Int -> Bool -> Apps.App -> ( Model, Cmd Msg )
 init floor ceiling global app =
     let
         ( models, cmds ) =
-            List.unzip (List.map (View.init floor ceiling global app.name) app.views)
+            List.unzip
+                (List.map
+                    (View.init floor ceiling global app.name)
+                    app.views
+                )
     in
         ( { name = app.name
           , views = Array.fromList models
@@ -61,11 +76,28 @@ key n =
     "key_" ++ n
 
 
+updateViews :
+    (View.Model -> ( View.Model, Cmd View.Msg ))
+    -> Model
+    -> ( Model, Cmd Msg )
+updateViews fn model =
+    let
+        result =
+            (Array.map fn model.views)
+    in
+        ( { model | views = Array.map fst result }
+        , Cmd.batch (iamap (\( i, ( a, c ) ) -> Cmd.map (ViewMsg i) c) result)
+        )
 
---updateGlobalLevels : Int -> Int -> Bool -> Model -> ( Model, List (Cmd Msg) )
---updateGlobalLevels floor ceiling global model =
---    ( model, Array.fromList )
---
+
+updateLevels : Int -> Int -> Bool -> Model -> ( Model, Cmd Msg )
+updateLevels floor ceiling global model =
+    updateViews (View.updateLevels floor ceiling global) model
+
+
+updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
+updateWindow start end model =
+    updateViews (View.updateWindow start end) model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )

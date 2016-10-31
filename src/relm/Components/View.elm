@@ -1,4 +1,14 @@
-module Components.View exposing (Model, Msg(..), init, update, view, subscriptions)
+module Components.View
+    exposing
+        ( Model
+        , Msg(..)
+        , init
+        , update
+        , view
+        , subscriptions
+        , updateLevels
+        , updateWindow
+        )
 
 -- elm.core
 
@@ -8,7 +18,7 @@ import Html.Events exposing (onClick)
 import Svg as S exposing (svg)
 import Svg.Attributes as S
 import Svg.Events as S
-import Date
+import Date exposing (Date)
 import RemoteData as RD
 import Http
 import Basics.Extra exposing (never)
@@ -45,6 +55,10 @@ type alias Model =
     , graph : Bool
     , checked : Bool
     , trap : Maybe Int
+    , start : Maybe Date
+    , end : Maybe Date
+    , floor : Int
+    , ceiling : Int
     , globalFloor : Int
     , globalCeiling : Int
     , globalLevels : Bool
@@ -60,6 +74,10 @@ init floor ceiling global app view =
       , graph = False
       , checked = False
       , trap = Nothing
+      , start = Nothing
+      , end = Nothing
+      , floor = 0
+      , ceiling = 0
       , globalFloor = floor
       , globalCeiling = ceiling
       , globalLevels = global
@@ -70,11 +88,6 @@ init floor ceiling global app view =
             [ key1, key2 ]
         )
     )
-
-
-updateGlobalLevels : Int -> Int -> Bool -> Model -> ( Model, Cmd Msg )
-updateGlobalLevels floor ceiling global model =
-    ( model, Cmd.none )
 
 
 key1 : String -> String -> String
@@ -98,6 +111,26 @@ type Msg
     | JsonFailed Http.Error
     | TrapMouseIn Int
     | TrapMouseOut Int
+
+
+updateLevels : Int -> Int -> Bool -> Model -> ( Model, Cmd Msg )
+updateLevels floor ceiling global model =
+    ( { model
+        | globalFloor = floor
+        , globalCeiling = ceiling
+        , globalLevels = global
+      }
+      -- TODO
+    , Cmd.none
+    )
+
+
+updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
+updateWindow start end model =
+    ( { model | start = Just start, end = Just end }
+      -- TODO
+    , Cmd.none
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
