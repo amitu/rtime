@@ -2,7 +2,7 @@ import os
 import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(BASE_DIR, '../py-rtime'))
+sys.path.append(os.path.join(BASE_DIR, '../pyrtime'))
 
 SECRET_KEY = 'secret'
 DEBUG = True
