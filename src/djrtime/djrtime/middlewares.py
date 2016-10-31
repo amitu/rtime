@@ -1,10 +1,19 @@
 from __future__ import absolute_import, unicode_literals
 
+import json
+import logging
+import socket
+import time
 import types
 
-from django.utils.functional import lazy
+from django.core.serializers.json import DjangoJSONEncoder
 
-from rtimeit.utils import Timer, logger
+import rtime.utils as rtime_utils
+
+from .conf import settings
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def get_request_name(request):
@@ -31,19 +40,33 @@ def get_request_name(request):
 
 class TimeItMiddleware(object):
     def process_request(self, request):
-        request.timeit = Timer(lazy(lambda r: get_request_name(r))(request))
-        request.timeit.start()
+        request._timeit_start = time.time()
+        rtime_utils.init()
 
     def process_response(self, request, response):
-        if hasattr(request, 'timeit'):
-            timeit = request.timeit
-            timeit.stop(send=False)
-            logger.info(
-                '{} took {} ms for method {} to return {} status'.format(
-                    timeit.name,
-                    timeit.ms,
-                    request.method,
-                    response.status_code
+        if hasattr(request, '_timeit_start'):
+            try:
+                ns = 1000 * 1000 * 1000 * (time.time() - request._timeit_start)
+                elapsed = int(round(ns))
+                rtime_utils.add_session_data(time_taken=elapsed)
+                rtime_utils.set_name(get_request_name(request))
+                data = rtime_utils.stop(send=False)
+                # import pprint
+                # pprint.pprint(data)
+                self.send(
+                    host=settings.RTIME_HOST,
+                    app=settings.RTIME_APP,
+                    name=data['name'],
+                    otime=data['time_taken'],
+                    data=data.get('stack', {}),
                 )
-            )
+            except:
+                logger.error('Exception in TimeItMiddleware', exc_info=True)
         return response
+
+    @staticmethod
+    def send(**msg):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        data = json.dumps(msg, cls=DjangoJSONEncoder, default=lambda x: str(x))
+        sock.sendto(data, settings.RTIME_ADDRESS)
+        logger.debug('data sent to {}'.format(settings.RTIME_ADDRESS))

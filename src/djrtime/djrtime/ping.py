@@ -29,10 +29,10 @@ class Message(object):
 
 def ping():
     msg = Message(
-        host = socket.gethostname(),
-        app = os.path.basename(__file__),
-        name = sys.argv[1],
-        otime = sys.argv[2]
+        host=socket.gethostname(),
+        app=os.path.basename(__file__),
+        name=sys.argv[1],
+        otime=sys.argv[2]
     )
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.sendto(msg.json(), (SERVER, PORT))
