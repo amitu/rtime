@@ -9,6 +9,7 @@ import Http
 import Array exposing (Array)
 import Time exposing (Time)
 import Date exposing (Date)
+import String
 
 
 -- extra
@@ -49,8 +50,8 @@ init =
     , json = Nothing
     , floor = 0
     , ceiling =
-        -- 1 sec
-        1000000000
+        -- 5 sec
+        5000000000
     , globalLevel = True
     , end = Nothing
     , start = Nothing
@@ -69,9 +70,9 @@ type Msg
     | ToggleGlobalLevel
 
 
-updateLevelsForApps : Model -> ( Model, Cmd Msg )
-updateLevelsForApps model =
-    ( model, Cmd.none )
+updateLevelsForApps : Model -> Cmd Msg -> ( Model, Cmd Msg )
+updateLevelsForApps model cmd =
+    ( model, cmd )
 
 
 refreshMaps : Model -> ( Model, Cmd Msg )
@@ -101,12 +102,17 @@ update msg model =
             )
 
         TimerToggle ->
-            ( { model | timer = not model.timer }, Cmd.none )
+            ( { model | timer = not model.timer }
+            , Ports.set_key ( "index__timer", (toString <| not model.timer) )
+            )
 
         ToggleGlobalLevel ->
             -- TODO: store it in local store
             -- TODO: update all views -- how?
             updateLevelsForApps { model | globalLevel = not model.globalLevel }
+                (Ports.set_key
+                    ( "index__global_level", (toString <| not model.globalLevel) )
+                )
 
         Tick _ ->
             if model.timer then
@@ -143,7 +149,37 @@ update msg model =
             ( { model | json = Nothing }, Cmd.none )
 
         KeysData list ->
-            ( model, Apps.getAppList AppsFailed AppsFetched )
+            ( List.foldl
+                (\( k, ( ok, v ) ) model ->
+                    if not ok || v == "" then
+                        model
+                    else if k == "index__timer" then
+                        { model | timer = v == "True" }
+                    else if k == "index__global_level" then
+                        { model | globalLevel = v == "True" }
+                    else if k == "index__floor" then
+                        { model
+                            | floor =
+                                (String.toInt v
+                                    |> Result.toMaybe
+                                    |> Maybe.withDefault 0
+                                )
+                        }
+                    else if k == "index__ceiling" then
+                        { model
+                            | ceiling =
+                                (String.toInt v
+                                    |> Result.toMaybe
+                                    |> Maybe.withDefault 5000000000
+                                )
+                        }
+                    else
+                        model
+                )
+                model
+                list
+            , Apps.getAppList AppsFailed AppsFetched
+            )
 
         AppMsg idx msg ->
             case model.apps of
