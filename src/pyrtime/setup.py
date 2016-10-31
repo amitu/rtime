@@ -1,8 +1,8 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='rtime',
-    version='0.1.0a1',
+    version='0.1.0a2',
     packages=['rtime'],
     url='',
     license='',
