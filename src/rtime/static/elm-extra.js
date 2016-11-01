@@ -4,8 +4,18 @@
 
 var app = Elm.Main.fullscreen({
     csrf: document.body.dataset.csrf,
+    store: get_local_store(),
 })
 
+function get_local_store() {
+    var data = []
+    for (var i = 0; i < localStorage.length; i++){
+        data.push(
+            [localStorage.key(i), localStorage.getItem(localStorage.key(i))]
+        )
+    }
+    return data
+}
 
 app.ports.reload.subscribe(function(){
     document.location.reload()
@@ -15,7 +25,6 @@ app.ports.reload.subscribe(function(){
 app.ports.title.subscribe(function(title) {
     document.title = title + " • rtime"
 })
-
 
 app.ports.get_key.subscribe(function(key){
     setTimeout(function(){

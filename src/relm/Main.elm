@@ -16,6 +16,7 @@ import Pages.Index as Index
 
 type alias Flags =
     { csrf : String
+    , store : List ( String, String )
     }
 
 
@@ -30,11 +31,11 @@ type alias Model =
     }
 
 
-initialModel : Routing.Route -> String -> Model
-initialModel route csrf =
+initialModel : Routing.Route -> String -> List ( String, String ) -> Model
+initialModel route csrf store =
     { csrf = csrf
     , route = route
-    , index = Index.init
+    , index = Index.init store
     }
 
 
@@ -45,7 +46,7 @@ init flags result =
             Routing.routeFromResult result
 
         imodel =
-            initialModel currentRoute flags.csrf
+            initialModel currentRoute flags.csrf flags.store
 
         ( model, cmd ) =
             urlUpdate result imodel

@@ -47,14 +47,15 @@ type alias Model =
     , endO : Duration
     , end : Maybe Date
     , now : Maybe Date
+    , store : List ( String, String )
     }
 
 
-init : Model
-init =
+init : List ( String, String ) -> Model
+init store =
     { apps = RD.NotAsked
     , timer = False
-    , timerPeriod = 30
+    , timerPeriod = 5
     , timerCurrent = 0
     , json = Nothing
     , floor = 0
@@ -72,6 +73,7 @@ init =
     , startO = Duration.Delta { zeroDelta | minute = -10 }
     , endO = Duration.Delta zeroDelta
     , now = Nothing
+    , store = store
     }
 
 
@@ -136,6 +138,11 @@ updateWindow model =
             window model
     in
         updateApps (App.updateWindow start end) model Cmd.none
+
+
+refreshGraphs : Model -> ( Model, Cmd Msg )
+refreshGraphs model =
+    ( model, Cmd.none )
 
 
 withCrash : Maybe a -> a
@@ -271,17 +278,18 @@ update msg model =
             else
                 updateLevels model Cmd.none
 
-        Tick _ ->
+        Tick now ->
             if model.timer then
                 let
                     current =
                         model.timerCurrent + 1
                 in
                     if current == model.timerPeriod then
-                        -- TODO: not so easy, if windows are abs, then ok, else
-                        -- get current time, calcualte new window and then call
-                        -- update window
-                        updateWindow { model | timerCurrent = 0 }
+                        refreshGraphs
+                            { model
+                                | timerCurrent = 0
+                                , now = Just (Date.fromTime now)
+                            }
                     else
                         ( { model | timerCurrent = current }, Cmd.none )
             else
