@@ -171,7 +171,7 @@ floorI model =
 ceiling : Model -> Int
 ceiling model =
     if model.globalLevels then
-        model.globalFloor
+        model.globalCeiling
     else
         0
 
