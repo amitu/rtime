@@ -260,10 +260,16 @@ update msg model =
                     ( { model | ceilingI = val, ceilingE = True }, Cmd.none )
 
         CommitFloor ->
-            updateLevels model Cmd.none
+            if model.floorE then
+                ( model, Cmd.none )
+            else
+                updateLevels model Cmd.none
 
         CommitCeiling ->
-            updateLevels model Cmd.none
+            if model.ceilingE then
+                ( model, Cmd.none )
+            else
+                updateLevels model Cmd.none
 
         Tick _ ->
             if model.timer then
