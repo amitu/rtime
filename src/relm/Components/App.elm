@@ -42,13 +42,13 @@ type alias Model =
     }
 
 
-init : Int -> Int -> Bool -> Apps.App -> ( Model, Cmd Msg )
-init floor ceiling global app =
+init : Int -> String -> Int -> String -> Bool -> Apps.App -> ( Model, Cmd Msg )
+init floor floorI ceiling ceilingI global app =
     let
         ( models, cmds ) =
             List.unzip
                 (List.map
-                    (View.init floor ceiling global app.name)
+                    (View.init floor floorI ceiling ceilingI global app.name)
                     app.views
                 )
     in
@@ -90,9 +90,16 @@ updateViews fn model =
         )
 
 
-updateLevels : Int -> Int -> Bool -> Model -> ( Model, Cmd Msg )
-updateLevels floor ceiling global model =
-    updateViews (View.updateLevels floor ceiling global) model
+updateLevels :
+    Int
+    -> String
+    -> Int
+    -> String
+    -> Bool
+    -> Model
+    -> ( Model, Cmd Msg )
+updateLevels floor floorI ceiling ceilingI global model =
+    updateViews (View.updateLevels floor floorI ceiling ceilingI global) model
 
 
 updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )

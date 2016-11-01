@@ -117,7 +117,16 @@ updateApps fn model cmd =
 
 updateLevels : Model -> Cmd Msg -> ( Model, Cmd Msg )
 updateLevels model cmd =
-    updateApps (App.updateLevels model.floor model.ceiling model.globalLevel) model cmd
+    updateApps
+        (App.updateLevels
+            model.floor
+            model.floorI
+            model.ceiling
+            model.ceilingI
+            model.globalLevel
+        )
+        model
+        cmd
 
 
 updateWindow : Model -> ( Model, Cmd Msg )
@@ -251,10 +260,10 @@ update msg model =
                     ( { model | ceilingI = val, ceilingE = True }, Cmd.none )
 
         CommitFloor ->
-            updateWindow model
+            updateLevels model Cmd.none
 
         CommitCeiling ->
-            updateWindow model
+            updateLevels model Cmd.none
 
         Tick _ ->
             if model.timer then
@@ -277,7 +286,12 @@ update msg model =
                 ( models, cmds ) =
                     List.unzip
                         (List.map
-                            (App.init model.floor model.ceiling model.globalLevel)
+                            (App.init model.floor
+                                model.floorI
+                                model.ceiling
+                                model.ceilingI
+                                model.globalLevel
+                            )
                             apps
                         )
             in

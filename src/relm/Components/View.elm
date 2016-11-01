@@ -60,13 +60,23 @@ type alias Model =
     , floor : Int
     , ceiling : Int
     , globalFloor : Int
+    , globalFloorI : String
     , globalCeiling : Int
+    , globalCeilingI : String
     , globalLevels : Bool
     }
 
 
-init : Int -> Int -> Bool -> String -> Apps.View -> ( Model, Cmd Msg )
-init floor ceiling global app view =
+init :
+    Int
+    -> String
+    -> Int
+    -> String
+    -> Bool
+    -> String
+    -> Apps.View
+    -> ( Model, Cmd Msg )
+init floor floorI ceiling ceilingI global app view =
     ( { data = RD.NotAsked
       , app = app
       , name = view.name
@@ -79,7 +89,9 @@ init floor ceiling global app view =
       , floor = 0
       , ceiling = 0
       , globalFloor = floor
+      , globalFloorI = floorI
       , globalCeiling = ceiling
+      , globalCeilingI = ceilingI
       , globalLevels = global
       }
     , Cmd.batch
@@ -113,14 +125,16 @@ type Msg
     | TrapMouseOut Int
 
 
-updateLevels : Int -> Int -> Bool -> Model -> ( Model, Cmd Msg )
-updateLevels floor ceiling global model =
+updateLevels : Int -> String -> Int -> String -> Bool -> Model -> ( Model, Cmd Msg )
+updateLevels floor floorI ceiling ceilingI global model =
     ( { model
         | globalFloor = floor
+        , globalFloorI = floorI
         , globalCeiling = ceiling
+        , globalCeilingI = ceilingI
         , globalLevels = global
       }
-      -- TODO
+      -- TODO refresh the graph
     , Cmd.none
     )
 
@@ -128,14 +142,14 @@ updateLevels floor ceiling global model =
 updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
 updateWindow start end model =
     ( { model | start = Just start, end = Just end }
-      -- TODO
+      -- TODO refresh the graph
     , Cmd.none
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
-    case Debug.log "P.App" msg of
+    case Debug.log "P.View" msg of
         ToggleCheck ->
             ( { model | checked = not model.checked }
             , (Ports.set_key
@@ -210,8 +224,8 @@ update msg model =
                 ""
                 (DP.add DP.Minute -10 date)
                 date
-                0
-                0
+                model.globalFloor
+                model.globalCeiling
               )
             , Nothing
             )
@@ -327,18 +341,18 @@ libar ( t, v ) =
                 ]
 
 
-decals : ViewData -> List (Html Msg)
-decals data =
+decals : Model -> ViewData -> List (Html Msg)
+decals model data =
     [ -- y axis
       S.line [ x1 0, y1 -0.5, x2 1026, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "1") ] []
       -- x axis
     , S.line [ x1 0, y1 0, x2 0, y2 65, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
       -- ceiling tick
     , S.line [ x1 0, y1 64, x2 7, y2 60, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
-    , S.text' [ x 9, y 58 ] [ S.text (toString data.ceiling) ]
+    , S.text' [ x 9, y 58 ] [ S.text model.globalCeilingI ]
       -- floor
     , S.line [ x1 7, y1 3.5, x2 0, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
-    , S.text' [ x 9, y 2 ] [ S.text (toString data.floor) ]
+    , S.text' [ x 9, y 2 ] [ S.text model.globalFloorI ]
     ]
 
 
@@ -399,7 +413,7 @@ graph model =
     case model.data of
         RD.Success data ->
             S.svg [ S.class "Graph", S.width "1026", S.height "130", S.viewBox "0 0 1026 130" ] <|
-                (decals data
+                (decals model data
                     ++ if List.length data.timings < 2 then
                         List.map libar data.timings
                        else
