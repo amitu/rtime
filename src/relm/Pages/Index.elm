@@ -1,7 +1,7 @@
 module Pages.Index exposing (Model, Msg(..), init, update, view, subscriptions)
 
 import Html exposing (Html, text, ul, li, a, h1, div, input, label)
-import Html.Attributes exposing (type', checked, value)
+import Html.Attributes exposing (type', checked, value, tabindex)
 import Html.Events exposing (onClick, onBlur, onInput)
 import Html.App
 import RemoteData as RD
@@ -392,8 +392,8 @@ update msg model =
                     Debug.crash "impossible"
 
 
-windowSelector : Model -> Html Msg
-windowSelector model =
+levelSelector : Model -> Html Msg
+levelSelector model =
     if model.globalLevel then
         div [ class [ RCSS.WindowSelector ] ]
             [ div
@@ -421,6 +421,7 @@ windowSelector model =
                     [ value model.floorI
                     , onInput OnFloor
                     , onBlur CommitFloor
+                    , tabindex -1
                     ]
                     []
                 ]
@@ -486,7 +487,7 @@ view model =
                         , checked model.globalLevel
                         ]
                         []
-                    , windowSelector model
+                    , levelSelector model
                     ]
                 ]
              ]
