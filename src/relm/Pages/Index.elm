@@ -9,6 +9,7 @@ import Http
 import Array exposing (Array)
 import Time exposing (Time)
 import Date exposing (Date)
+import Dict exposing (Dict)
 import Date.Extra.Duration as Duration exposing (Duration, zeroDelta)
 import String
 
@@ -47,7 +48,7 @@ type alias Model =
     , endO : Duration
     , end : Maybe Date
     , now : Maybe Date
-    , store : List ( String, String )
+    , store : Dict String String
     }
 
 
@@ -73,8 +74,42 @@ init store =
     , startO = Duration.Delta { zeroDelta | minute = -10 }
     , endO = Duration.Delta zeroDelta
     , now = Nothing
-    , store = store
+    , store = Dict.fromList store
     }
+        |> readKey "timer" (\( v, m ) -> { m | timer = v == "True" })
+        |> readKey "global_level" (\( v, m ) -> { m | globalLevel = v == "True" })
+        |> readKey "floor_i" (\( v, m ) -> { m | floorI = v })
+        |> readKey "ceiling_i" (\( v, m ) -> { m | ceilingI = v })
+        |> readKey "floor"
+            (\( v, m ) ->
+                { m
+                    | floor =
+                        (String.toInt v
+                            |> Result.toMaybe
+                            |> Maybe.withDefault 0
+                        )
+                }
+            )
+        |> readKey "ceiling"
+            (\( v, m ) ->
+                { m
+                    | ceiling =
+                        (String.toInt v
+                            |> Result.toMaybe
+                            |> Maybe.withDefault 5000000000
+                        )
+                }
+            )
+
+
+readKey : String -> (( String, Model ) -> Model) -> Model -> Model
+readKey key fn model =
+    case Dict.get ("index__" ++ key) model.store of
+        Just v ->
+            fn ( v, model )
+
+        Nothing ->
+            model
 
 
 type Msg
@@ -85,7 +120,6 @@ type Msg
     | TimerToggle
     | Tick Time.Time
     | HideJson
-    | KeysData (List ( String, ( Bool, String ) ))
     | ToggleGlobalLevel
     | OnFloor String
     | CommitFloor
@@ -214,14 +248,7 @@ update msg model =
             ( { model | apps = RD.Loading }
             , Cmd.batch
                 [ Ports.title "welcome"
-                , Ports.get_keys
-                    [ "index__global_level"
-                    , "index__floor"
-                    , "index__floor_i"
-                    , "index__ceiling"
-                    , "index__ceiling_i"
-                    , "index__timer"
-                    ]
+                , Apps.getAppList AppsFailed AppsFetched
                 ]
             )
 
@@ -320,46 +347,6 @@ update msg model =
 
         HideJson ->
             ( { model | json = Nothing }, Cmd.none )
-
-        KeysData list ->
-            ( List.foldl
-                (\( k, ( ok, v ) ) model ->
-                    if not ok || v == "" then
-                        model
-                    else if k == "index__timer" then
-                        { model | timer = v == "True" }
-                    else if k == "index__global_level" then
-                        { model | globalLevel = v == "True" }
-                    else if k == "index__floor" then
-                        { model
-                            | floor =
-                                (String.toInt v
-                                    |> Result.toMaybe
-                                    |> Maybe.withDefault 0
-                                )
-                            , floorE = False
-                        }
-                    else if k == "index__floor_i" then
-                        { model | floorI = v }
-                    else if k == "index__ceiling" then
-                        { model
-                            | ceiling =
-                                (String.toInt v
-                                    |> Result.toMaybe
-                                    |> Maybe.withDefault 5000000000
-                                )
-                            , ceilingE = False
-                            , ceilingI = v ++ "ns"
-                        }
-                    else if k == "index__ceiling_i" then
-                        { model | ceilingI = v }
-                    else
-                        model
-                )
-                model
-                list
-            , Apps.getAppList AppsFailed AppsFetched
-            )
 
         AppMsg idx msg ->
             case model.apps of
@@ -512,7 +499,6 @@ subscriptions model =
           else
             []
          )
-            ++ [ Ports.keysData KeysData ]
             ++ (case model.apps of
                     RD.Success apps ->
                         (iamap
