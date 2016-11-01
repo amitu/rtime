@@ -147,6 +147,48 @@ updateWindow start end model =
     )
 
 
+floor : Model -> Int
+floor model =
+    if model.globalLevels then
+        model.globalFloor
+    else
+        0
+
+
+floorI : Model -> String
+floorI model =
+    if model.globalLevels then
+        model.globalFloorI
+    else
+        case model.data of
+            RD.Success data ->
+                (toString data.floor)
+
+            _ ->
+                "unknown"
+
+
+ceiling : Model -> Int
+ceiling model =
+    if model.globalLevels then
+        model.globalFloor
+    else
+        0
+
+
+ceilingI : Model -> String
+ceilingI model =
+    if model.globalLevels then
+        model.globalCeilingI
+    else
+        case model.data of
+            RD.Success data ->
+                (toString data.ceiling)
+
+            _ ->
+                "unknown"
+
+
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
     case Debug.log "P.View" msg of
@@ -224,8 +266,8 @@ update msg model =
                 ""
                 (DP.add DP.Minute -10 date)
                 date
-                model.globalFloor
-                model.globalCeiling
+                (floor model)
+                (ceiling model)
               )
             , Nothing
             )
@@ -349,10 +391,10 @@ decals model data =
     , S.line [ x1 0, y1 0, x2 0, y2 65, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
       -- ceiling tick
     , S.line [ x1 0, y1 64, x2 7, y2 60, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
-    , S.text' [ x 9, y 58 ] [ S.text model.globalCeilingI ]
+    , S.text' [ x 9, y 58 ] [ S.text (ceilingI model) ]
       -- floor
     , S.line [ x1 7, y1 3.5, x2 0, y2 -0.5, (S.stroke "#ccc"), (S.strokeWidth "2") ] []
-    , S.text' [ x 9, y 2 ] [ S.text model.globalFloorI ]
+    , S.text' [ x 9, y 2 ] [ S.text (floorI model) ]
     ]
 
 
