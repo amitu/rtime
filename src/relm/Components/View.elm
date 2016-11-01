@@ -191,7 +191,7 @@ ceilingI model =
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
-    case Debug.log "P.View" msg of
+    case msg of
         ToggleCheck ->
             ( { model | checked = not model.checked }
             , (Ports.set_key

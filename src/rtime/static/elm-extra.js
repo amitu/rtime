@@ -18,7 +18,6 @@ app.ports.title.subscribe(function(title) {
 
 
 app.ports.get_key.subscribe(function(key){
-    console.log("ports.get_key", key)
     setTimeout(function(){
         if (localStorage.hasOwnProperty(key)) {
             app.ports.keyData.send([
@@ -31,7 +30,6 @@ app.ports.get_key.subscribe(function(key){
 })
 
 app.ports.get_keys.subscribe(function(keys){
-    console.log("ports.get_keys", keys)
     setTimeout(function(){
         var kd = [];
         for (var i = 0; i < keys.length; i++) {
@@ -51,12 +49,10 @@ app.ports.get_keys.subscribe(function(keys){
 })
 
 app.ports.set_key.subscribe(function(val){
-    console.log("ports.set_key", val)
     localStorage.setItem(val[0], val[1])
 })
 
 app.ports.set_keys.subscribe(function(vals){
-    console.log("ports.set_key", val)
     for (var i = 0; i < vals.length; i++) {
         var val = vals[i];
         localStorage.setItem(val[0], val[1])
@@ -64,14 +60,11 @@ app.ports.set_keys.subscribe(function(vals){
 })
 
 app.ports.clear_key.subscribe(function(key){
-    console.log("ports.clear_key", key)
     localStorage.removeItem(key)
 })
 
 
 app.ports.get_graph.subscribe(function(val) {
-    console.log("ports.get_graph", val)
-
     var oReq = new XMLHttpRequest()
     oReq.open(
         "GET", (

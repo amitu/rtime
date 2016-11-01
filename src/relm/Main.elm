@@ -62,7 +62,7 @@ urlUpdate result imodel =
         model =
             { imodel | route = route }
     in
-        case Debug.log "urlUpdate" route of
+        case route of
             Routing.IndexRoute ->
                 let
                     ( imodel, icmd ) =

@@ -202,7 +202,7 @@ parseTime val =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case Debug.log "P.Index" msg of
+    case msg of
         Viewed ->
             ( { model | apps = RD.Loading }
             , Cmd.batch

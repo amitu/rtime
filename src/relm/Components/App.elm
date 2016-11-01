@@ -109,7 +109,7 @@ updateWindow start end model =
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
-    case Debug.log "C.App" msg of
+    case msg of
         CheckboxToggle ->
             let
                 checkbox =
