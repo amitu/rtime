@@ -87,8 +87,10 @@ css =
             , position absolute
             , textAlign right
             , border3 (px 1) solid (hex "979797")
-            , paddingLeft (px 6)
-            , paddingRight (px 3)
+            , paddingTop (px 10)
+            , paddingLeft (px 26)
+            , paddingRight (px 23)
+            , paddingBottom (px 10)
             , descendants
                 [ input
                     [ display inlineBlock
