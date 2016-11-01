@@ -55,6 +55,7 @@ type alias Model =
     , graph : Bool
     , checked : Bool
     , trap : Maybe Int
+    , now : Maybe Date
     , start : Maybe Date
     , end : Maybe Date
     , floor : Int
@@ -84,6 +85,7 @@ init floor floorI ceiling ceilingI global app view =
       , graph = False
       , checked = False
       , trap = Nothing
+      , now = Nothing
       , start = Nothing
       , end = Nothing
       , floor = 0
@@ -127,24 +129,43 @@ type Msg
 
 updateLevels : Int -> String -> Int -> String -> Bool -> Model -> ( Model, Cmd Msg )
 updateLevels floor floorI ceiling ceilingI global model =
-    ( { model
-        | globalFloor = floor
-        , globalFloorI = floorI
-        , globalCeiling = ceiling
-        , globalCeilingI = ceilingI
-        , globalLevels = global
-      }
-      -- TODO refresh the graph
-    , Cmd.none
-    )
+    refreshGraph
+        { model
+            | globalFloor = floor
+            , globalFloorI = floorI
+            , globalCeiling = ceiling
+            , globalCeilingI = ceilingI
+            , globalLevels = global
+        }
 
 
 updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
 updateWindow start end model =
-    ( { model | start = Just start, end = Just end }
-      -- TODO refresh the graph
-    , Cmd.none
-    )
+    refreshGraph
+        { model
+            | start = Just start
+            , end = Just end
+        }
+
+
+refreshGraph : Model -> ( Model, Cmd Msg )
+refreshGraph model =
+    case model.now of
+        Just date ->
+            ( { model | data = RD.Loading, now = Just date }
+            , (Ports.getGraph
+                model.app
+                model.name
+                ""
+                (DP.add DP.Minute -10 date)
+                date
+                (floor model)
+                (ceiling model)
+              )
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
 
 
 floor : Model -> Int
@@ -259,7 +280,7 @@ update msg model =
                 ( model, Cmd.none, Nothing )
 
         DateFetched date ->
-            ( { model | data = RD.Loading }
+            ( { model | data = RD.Loading, now = Just date }
             , (Ports.getGraph
                 model.app
                 model.name
