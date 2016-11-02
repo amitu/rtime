@@ -22,14 +22,7 @@ import Date exposing (Date)
 import Date.Extra.Duration as Duration exposing (Duration)
 import RemoteData as RD
 import Http
-import Basics.Extra exposing (never)
-import Task
 import Dict exposing (Dict)
-
-
--- extra
-
-import Date.Extra.Period as DP
 
 
 -- ours
@@ -56,10 +49,12 @@ type alias Model =
     , hosts : List String
     , graph : Bool
     , checked : Bool
-    , trap : Maybe Int
-    , now : Maybe Date
-    , start : Maybe Date
-    , end : Maybe Date
+    , start : Date
+    , end : Date
+    , startO : Duration
+    , endO : Duration
+    , now : Date
+    , absolute : Bool
     , floor : Int
     , ceiling : Int
     , globalFloor : Int
@@ -93,10 +88,6 @@ init floor floorI ceiling ceilingI global app store start end startO endO absolu
     , hosts = view.hosts
     , graph = False
     , checked = False
-    , trap = Nothing
-    , now = Nothing
-    , start = Nothing
-    , end = Nothing
     , floor = 0
     , ceiling = 0
     , globalFloor = floor
@@ -104,6 +95,12 @@ init floor floorI ceiling ceilingI global app store start end startO endO absolu
     , globalCeiling = ceiling
     , globalCeilingI = ceilingI
     , globalLevels = global
+    , start = start
+    , end = end
+    , startO = startO
+    , endO = endO
+    , now = now
+    , absolute = absolute
     }
         |> readCheckedKey store
         |> readGraphKey store
@@ -125,7 +122,7 @@ readGraphKey store model =
         Just v ->
             if v == "open" then
                 ( { model | graph = True }
-                , Task.perform never DateFetched Date.now
+                , fetchGraph model
                 )
             else
                 ( { model | graph = False }, Cmd.none )
@@ -147,54 +144,37 @@ key2 a n =
 type Msg
     = ToggleGraph
     | ToggleCheck
-    | DateFetched Date.Date
     | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
     | LineClick Int
     | GotJson Apps.JsonResp
     | JsonFailed Http.Error
-    | TrapMouseIn Int
-    | TrapMouseOut Int
 
 
 updateLevels : Int -> String -> Int -> String -> Bool -> Model -> ( Model, Cmd Msg )
 updateLevels floor floorI ceiling ceilingI global model =
-    refreshGraph
-        { model
-            | globalFloor = floor
-            , globalFloorI = floorI
-            , globalCeiling = ceiling
-            , globalCeilingI = ceilingI
-            , globalLevels = global
-        }
+    let
+        model =
+            { model
+                | globalFloor = floor
+                , globalFloorI = floorI
+                , globalCeiling = ceiling
+                , globalCeilingI = ceilingI
+                , globalLevels = global
+            }
+    in
+        ( model, fetchGraph model )
 
 
 updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
 updateWindow start end model =
-    refreshGraph
-        { model
-            | start = Just start
-            , end = Just end
-        }
-
-
-refreshGraph : Model -> ( Model, Cmd Msg )
-refreshGraph model =
-    case model.now of
-        Just date ->
-            ( { model | data = RD.Loading, now = Just date }
-            , (Ports.getGraph
-                model.app
-                model.name
-                ""
-                (DP.add DP.Minute -10 date)
-                date
-                (floor model)
-                (ceiling model)
-              )
-            )
-
-        Nothing ->
-            ( model, Cmd.none )
+    let
+        model =
+            { model
+                | start = start
+                , end = end
+            }
+    in
+        ( model, fetchGraph model )
 
 
 floor : Model -> Int
@@ -239,6 +219,34 @@ ceilingI model =
                 "unknown"
 
 
+start : Model -> Date
+start model =
+    if model.absolute then
+        model.start
+    else
+        Duration.add model.startO 1 model.now
+
+
+end : Model -> Date
+end model =
+    if model.absolute then
+        model.end
+    else
+        Duration.add model.endO 1 model.now
+
+
+fetchGraph : Model -> Cmd Msg
+fetchGraph model =
+    Ports.getGraph
+        model.app
+        model.name
+        ""
+        (start model)
+        (end model)
+        (floor model)
+        (ceiling model)
+
+
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
     case msg of
@@ -272,12 +280,6 @@ update msg model =
         JsonFailed err ->
             ( model, Cmd.none, Just (Out.ShowJson (toString err)) )
 
-        TrapMouseIn ts ->
-            ( { model | trap = Just ts }, Cmd.none, Nothing )
-
-        TrapMouseOut ts ->
-            ( { model | trap = Nothing }, Cmd.none, Nothing )
-
         ToggleGraph ->
             if model.graph then
                 ( { model | graph = False }
@@ -285,32 +287,21 @@ update msg model =
                 , Nothing
                 )
             else
-                ( { model | graph = True }
-                , case model.data of
+                case model.data of
                     RD.NotAsked ->
-                        Cmd.batch
-                            [ Task.perform never DateFetched Date.now
+                        ( { model | graph = True, data = RD.Loading }
+                        , Cmd.batch
+                            [ fetchGraph model
                             , Ports.set_key ( key2 model.app model.name, "open" )
                             ]
+                        , Nothing
+                        )
 
                     _ ->
-                        Ports.set_key ( key2 model.app model.name, "open" )
-                , Nothing
-                )
-
-        DateFetched date ->
-            ( { model | data = RD.Loading, now = Just date }
-            , (Ports.getGraph
-                model.app
-                model.name
-                ""
-                (DP.add DP.Minute -10 date)
-                date
-                (floor model)
-                (ceiling model)
-              )
-            , Nothing
-            )
+                        ( { model | graph = True }
+                        , Ports.set_key ( key2 model.app model.name, "open" )
+                        , Nothing
+                        )
 
         ViewDataFetched ( err, ( id, app, view ), ( floor, ceiling ), list ) ->
             if ( app, view ) == ( model.app, model.name ) then
@@ -443,8 +434,8 @@ s =
     toString
 
 
-trapezoid : Maybe Int -> ( Int, ( Int, Int ), ( Int, Int ) ) -> Html Msg
-trapezoid selected ( current, ( t1, v1o ), ( t2, v2o ) ) =
+trapezoid : ( Int, ( Int, Int ), ( Int, Int ) ) -> Html Msg
+trapezoid ( current, ( t1, v1o ), ( t2, v2o ) ) =
     let
         v1 =
             (64 - v1o) * 2
@@ -454,22 +445,11 @@ trapezoid selected ( current, ( t1, v1o ), ( t2, v2o ) ) =
 
         points =
             ((s t1) ++ ",130 " ++ (s t2) ++ ",130 " ++ (s t2) ++ "," ++ (s v2) ++ " " ++ (s t1) ++ "," ++ (s v1))
-
-        fill =
-            case selected of
-                Just selected ->
-                    if selected == current then
-                        S.fill "red"
-                    else
-                        S.fill "blue"
-
-                Nothing ->
-                    S.fill "blue"
     in
         S.g []
             [ S.polygon
                 [ S.points points
-                , fill
+                , S.fill "blue"
                   -- , S.onMouseOver (TrapMouseIn current)
                   -- , S.onMouseOut (TrapMouseOut current)
                 ]
@@ -499,7 +479,7 @@ graph model =
                     ++ if List.length data.timings < 2 then
                         List.map libar data.timings
                        else
-                        twoimap (trapezoid model.trap) data.timings
+                        twoimap trapezoid data.timings
                 )
 
         RD.Loading ->
