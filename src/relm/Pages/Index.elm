@@ -332,6 +332,7 @@ update msg model =
                                 model.ceiling
                                 model.ceilingI
                                 model.globalLevel
+                                model.store
                             )
                             apps
                         )

@@ -16,6 +16,7 @@ import Html.Events exposing (onClick)
 import Array exposing (Array)
 import Html.App
 import Date exposing (Date)
+import Dict exposing (Dict)
 
 
 -- ours
@@ -42,8 +43,16 @@ type alias Model =
     }
 
 
-init : Int -> String -> Int -> String -> Bool -> Apps.App -> ( Model, Cmd Msg )
-init floor floorI ceiling ceilingI global app =
+init :
+    Int
+    -> String
+    -> Int
+    -> String
+    -> Bool
+    -> Dict String String
+    -> Apps.App
+    -> ( Model, Cmd Msg )
+init floor floorI ceiling ceilingI global store app =
     let
         ( models, cmds ) =
             List.unzip
@@ -57,10 +66,30 @@ init floor floorI ceiling ceilingI global app =
           , state = Open
           , checkbox = False
           }
-        , Cmd.batch <|
-            (Ports.get_key (key app.name))
-                :: (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
+            |> readState store
+        , Cmd.batch (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
         )
+
+
+readState : Dict String String -> Model -> Model
+readState store model =
+    case Dict.get (key model.name) store of
+        Just v ->
+            case v of
+                "Open" ->
+                    { model | checkbox = False, state = Open }
+
+                "Closed" ->
+                    { model | checkbox = False, state = Closed }
+
+                "Checked" ->
+                    { model | checkbox = True, state = Checked }
+
+                v ->
+                    Debug.crash ("unknown value: " ++ v)
+
+        Nothing ->
+            model
 
 
 type Msg
@@ -68,12 +97,11 @@ type Msg
     | CheckboxToggle
     | AppToggle
     | ShowAll
-    | KeyData ( String, ( Bool, String ) )
 
 
 key : String -> String
 key n =
-    "key_" ++ n
+    "app__" ++ n
 
 
 updateViews :
@@ -125,23 +153,6 @@ update msg model =
                     , Ports.set_key ( key model.name, "Closed" )
                     , Nothing
                     )
-
-        KeyData ( k, ( ok, v ) ) ->
-            if k /= (key model.name) || not ok then
-                ( model, Cmd.none, Nothing )
-            else
-                case v of
-                    "Open" ->
-                        ( { model | checkbox = False, state = Open }, Cmd.none, Nothing )
-
-                    "Closed" ->
-                        ( { model | checkbox = False, state = Closed }, Cmd.none, Nothing )
-
-                    "Checked" ->
-                        ( { model | checkbox = True, state = Checked }, Cmd.none, Nothing )
-
-                    v ->
-                        Debug.crash v
 
         ShowAll ->
             ( { model | state = Open, checkbox = False }
@@ -260,9 +271,7 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        ((Ports.keyData KeyData)
-            :: (iamap
-                    (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v))
-                    model.views
-               )
+        (iamap
+            (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v))
+            model.views
         )
