@@ -165,13 +165,17 @@ updateLevels floor floorI ceiling ceilingI global model =
         ( model, fetchGraph model )
 
 
-updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
-updateWindow start end model =
+updateWindow : Date -> Date -> Duration -> Duration -> Date -> Bool -> Model -> ( Model, Cmd Msg )
+updateWindow start end startO endO now absolute model =
     let
         model =
             { model
                 | start = start
                 , end = end
+                , startO = startO
+                , endO = endO
+                , now = now
+                , absolute = absolute
             }
     in
         ( model, fetchGraph model )

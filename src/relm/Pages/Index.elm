@@ -60,7 +60,7 @@ init : List ( String, String ) -> Model
 init store =
     { apps = RD.NotAsked
     , timer = False
-    , timerPeriod = 5
+    , timerPeriod = 60
     , timerCurrent = 0
     , json = Nothing
     , floor = 0
@@ -171,17 +171,18 @@ updateLevels model cmd =
 
 
 updateWindow : Model -> ( Model, Cmd Msg )
-updateWindow model =
-    let
-        ( start, end ) =
-            window model
-    in
-        updateApps (App.updateWindow start end) model Cmd.none
-
-
-refreshGraphs : Model -> ( Model, Cmd Msg )
-refreshGraphs model =
-    ( model, Cmd.none )
+updateWindow m =
+    updateApps
+        (App.updateWindow
+            (withCrash m.start)
+            (withCrash m.end)
+            m.startO
+            m.endO
+            (withCrash m.now)
+            m.absoluteWindow
+        )
+        m
+        Cmd.none
 
 
 withCrash : Maybe a -> a
@@ -331,7 +332,7 @@ update msg model =
                         model.timerCurrent + 1
                 in
                     if current == model.timerPeriod then
-                        refreshGraphs
+                        updateWindow
                             { model
                                 | timerCurrent = 0
                                 , now = Just (Date.fromTime now)

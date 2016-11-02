@@ -151,9 +151,17 @@ updateLevels floor floorI ceiling ceilingI global model =
     updateViews (View.updateLevels floor floorI ceiling ceilingI global) model
 
 
-updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
-updateWindow start end model =
-    updateViews (View.updateWindow start end) model
+updateWindow :
+    Date
+    -> Date
+    -> Duration
+    -> Duration
+    -> Date
+    -> Bool
+    -> Model
+    -> ( Model, Cmd Msg )
+updateWindow start end startO endO now absolute model =
+    updateViews (View.updateWindow start end startO endO now absolute) model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
