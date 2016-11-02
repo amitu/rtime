@@ -76,12 +76,12 @@ init store =
     , now = Nothing
     , store = Dict.fromList store
     }
-        |> readKey "timer" (\( v, m ) -> { m | timer = v == "True" })
-        |> readKey "global_level" (\( v, m ) -> { m | globalLevel = v == "True" })
-        |> readKey "floor_i" (\( v, m ) -> { m | floorI = v })
-        |> readKey "ceiling_i" (\( v, m ) -> { m | ceilingI = v })
+        |> readKey "timer" (\v m -> { m | timer = v == "True" })
+        |> readKey "global_level" (\v m -> { m | globalLevel = v == "True" })
+        |> readKey "floor_i" (\v m -> { m | floorI = v })
+        |> readKey "ceiling_i" (\v m -> { m | ceilingI = v })
         |> readKey "floor"
-            (\( v, m ) ->
+            (\v m ->
                 { m
                     | floor =
                         (String.toInt v
@@ -91,7 +91,7 @@ init store =
                 }
             )
         |> readKey "ceiling"
-            (\( v, m ) ->
+            (\v m ->
                 { m
                     | ceiling =
                         (String.toInt v
@@ -102,11 +102,11 @@ init store =
             )
 
 
-readKey : String -> (( String, Model ) -> Model) -> Model -> Model
+readKey : String -> (String -> Model -> Model) -> Model -> Model
 readKey key fn model =
     case Dict.get ("index__" ++ key) model.store of
         Just v ->
-            fn ( v, model )
+            fn v model
 
         Nothing ->
             model
