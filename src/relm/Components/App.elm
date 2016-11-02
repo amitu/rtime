@@ -16,6 +16,7 @@ import Html.Events exposing (onClick)
 import Array exposing (Array)
 import Html.App
 import Date exposing (Date)
+import Date.Extra.Duration as Duration exposing (Duration)
 import Dict exposing (Dict)
 
 
@@ -50,14 +51,34 @@ init :
     -> String
     -> Bool
     -> Dict String String
+    -> Date
+    -> Date
+    -> Duration
+    -> Duration
+    -> Bool
+    -> Date
     -> Apps.App
     -> ( Model, Cmd Msg )
-init floor floorI ceiling ceilingI global store app =
+init floor floorI ceiling ceilingI global store start end startO endO absolute now app =
     let
         ( models, cmds ) =
             List.unzip
                 (List.map
-                    (View.init floor floorI ceiling ceilingI global app.name store)
+                    (View.init
+                        floor
+                        floorI
+                        ceiling
+                        ceilingI
+                        global
+                        app.name
+                        store
+                        start
+                        end
+                        startO
+                        endO
+                        absolute
+                        now
+                    )
                     app.views
                 )
     in

@@ -12,6 +12,8 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Date.Extra.Duration as Duration exposing (Duration, zeroDelta)
 import String
+import Task
+import Basics.Extra exposing (never)
 
 
 -- extra
@@ -42,11 +44,13 @@ type alias Model =
     , ceilingI : String
     , ceilingE : Bool
     , globalLevel : Bool
-    , absoluteWindow : Bool
+    , absoluteWindow :
+        -- this decides if start or start0 + now is to be used
+        Bool
     , start : Maybe Date
+    , end : Maybe Date
     , startO : Duration
     , endO : Duration
-    , end : Maybe Date
     , now : Maybe Date
     , store : Dict String String
     }
@@ -114,6 +118,7 @@ readKey key fn model =
 
 type Msg
     = Viewed
+    | CurrentTime Time.Time
     | AppsFetched (List Apps.App)
     | AppsFailed Http.Error
     | AppMsg Int App.Msg
@@ -248,9 +253,23 @@ update msg model =
             ( { model | apps = RD.Loading }
             , Cmd.batch
                 [ Ports.title "welcome"
-                , Apps.getAppList AppsFailed AppsFetched
+                , Time.now
+                    |> Task.perform never CurrentTime
                 ]
             )
+
+        CurrentTime now ->
+            let
+                nowd =
+                    Date.fromTime now
+            in
+                ( { model
+                    | now = Just nowd
+                    , start = Just (Duration.add model.startO 1 nowd)
+                    , end = Just nowd
+                  }
+                , Apps.getAppList AppsFailed AppsFetched
+                )
 
         TimerToggle ->
             ( { model | timer = not model.timer }
@@ -333,6 +352,12 @@ update msg model =
                                 model.ceilingI
                                 model.globalLevel
                                 model.store
+                                (withCrash model.start)
+                                (withCrash model.end)
+                                model.startO
+                                model.endO
+                                model.absoluteWindow
+                                (withCrash model.now)
                             )
                             apps
                         )

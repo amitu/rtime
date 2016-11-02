@@ -19,6 +19,7 @@ import Svg as S exposing (svg)
 import Svg.Attributes as S
 import Svg.Events as S
 import Date exposing (Date)
+import Date.Extra.Duration as Duration exposing (Duration)
 import RemoteData as RD
 import Http
 import Basics.Extra exposing (never)
@@ -77,9 +78,15 @@ init :
     -> Bool
     -> String
     -> Dict String String
+    -> Date
+    -> Date
+    -> Duration
+    -> Duration
+    -> Bool
+    -> Date
     -> Apps.View
     -> ( Model, Cmd Msg )
-init floor floorI ceiling ceilingI global app store view =
+init floor floorI ceiling ceilingI global app store start end startO endO absolute now view =
     { data = RD.NotAsked
     , app = app
     , name = view.name
