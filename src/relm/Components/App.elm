@@ -57,7 +57,7 @@ init floor floorI ceiling ceilingI global store app =
         ( models, cmds ) =
             List.unzip
                 (List.map
-                    (View.init floor floorI ceiling ceilingI global app.name)
+                    (View.init floor floorI ceiling ceilingI global app.name store)
                     app.views
                 )
     in

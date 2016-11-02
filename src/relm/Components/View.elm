@@ -23,6 +23,7 @@ import RemoteData as RD
 import Http
 import Basics.Extra exposing (never)
 import Task
+import Dict exposing (Dict)
 
 
 -- extra
@@ -75,33 +76,55 @@ init :
     -> String
     -> Bool
     -> String
+    -> Dict String String
     -> Apps.View
     -> ( Model, Cmd Msg )
-init floor floorI ceiling ceilingI global app view =
-    ( { data = RD.NotAsked
-      , app = app
-      , name = view.name
-      , hosts = view.hosts
-      , graph = False
-      , checked = False
-      , trap = Nothing
-      , now = Nothing
-      , start = Nothing
-      , end = Nothing
-      , floor = 0
-      , ceiling = 0
-      , globalFloor = floor
-      , globalFloorI = floorI
-      , globalCeiling = ceiling
-      , globalCeilingI = ceilingI
-      , globalLevels = global
-      }
-    , Cmd.batch
-        (List.map
-            (\f -> Ports.get_key (f app view.name))
-            [ key1, key2 ]
-        )
-    )
+init floor floorI ceiling ceilingI global app store view =
+    { data = RD.NotAsked
+    , app = app
+    , name = view.name
+    , hosts = view.hosts
+    , graph = False
+    , checked = False
+    , trap = Nothing
+    , now = Nothing
+    , start = Nothing
+    , end = Nothing
+    , floor = 0
+    , ceiling = 0
+    , globalFloor = floor
+    , globalFloorI = floorI
+    , globalCeiling = ceiling
+    , globalCeilingI = ceilingI
+    , globalLevels = global
+    }
+        |> readCheckedKey store
+        |> readGraphKey store
+
+
+readCheckedKey : Dict String String -> Model -> Model
+readCheckedKey store model =
+    case Dict.get (key1 model.app model.name) store of
+        Just v ->
+            { model | checked = v == "open" }
+
+        Nothing ->
+            model
+
+
+readGraphKey : Dict String String -> Model -> ( Model, Cmd Msg )
+readGraphKey store model =
+    case Dict.get (key2 model.app model.name) store of
+        Just v ->
+            if v == "open" then
+                ( { model | graph = True }
+                , Task.perform never DateFetched Date.now
+                )
+            else
+                ( { model | graph = False }, Cmd.none )
+
+        Nothing ->
+            ( model, Cmd.none )
 
 
 key1 : String -> String -> String
@@ -119,7 +142,6 @@ type Msg
     | ToggleCheck
     | DateFetched Date.Date
     | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
-    | KeyData ( String, ( Bool, String ) )
     | LineClick Int
     | GotJson Apps.JsonResp
     | JsonFailed Http.Error
@@ -269,16 +291,6 @@ update msg model =
                 , Nothing
                 )
 
-        KeyData ( k, ( ok, v ) ) ->
-            if not ok || v == "" then
-                ( model, Cmd.none, Nothing )
-            else if k == key1 model.app model.name then
-                update ToggleCheck model
-            else if k == key2 model.app model.name then
-                update ToggleGraph model
-            else
-                ( model, Cmd.none, Nothing )
-
         DateFetched date ->
             ( { model | data = RD.Loading, now = Just date }
             , (Ports.getGraph
@@ -322,7 +334,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [ Ports.graphData ViewDataFetched, Ports.keyData KeyData ]
+    Ports.graphData ViewDataFetched
 
 
 maker : (String -> S.Attribute Msg) -> number -> S.Attribute Msg
