@@ -16,6 +16,7 @@ import Task
 import Basics.Extra exposing (never)
 import Json.Decode as JD exposing ((:=))
 import Json.Decode.Extra exposing ((|:))
+import Json.Encode as JE
 
 
 -- extra
@@ -51,10 +52,6 @@ type alias Model =
     , absoluteWindow :
         -- this decides if start or start0 + now is to be used
         Bool
-    , start : Maybe Date
-    , end : Maybe Date
-    , startO : Duration
-    , endO : Duration
     , startI : String
     , endI : String
     , startE : Bool
@@ -80,16 +77,12 @@ init store =
     , ceilingI = "5s"
     , ceilingE = False
     , globalLevel = True
-    , end = Nothing
-    , start = Nothing
     , absoluteWindow = False
     , window =
         { start = RelativeDate Duration.Minute -10
         , end = RelativeDate Duration.Minute 0
         }
     , windowSelectorOpen = False
-    , startO = tenMins
-    , endO = zero
     , now = Nothing
     , startI = "-10 minute"
     , endI = "now"
@@ -124,7 +117,7 @@ init store =
         |> readKey "window"
             (\v m ->
                 setWindow
-                    (JD.decodeString window2 v
+                    (JD.decodeString window v
                         |> Result.toMaybe
                         |> Maybe.withDefault
                             { start = RelativeDate Duration.Minute -10
@@ -191,20 +184,24 @@ readKey key fn model =
             model
 
 
+resolve : DateSpec -> Date -> Date
+resolve d now =
+    case d of
+        AbsoluteDate d ->
+            d
+
+        RelativeDate d c ->
+            Duration.add d c now
+
+
 start : Model -> Date
 start model =
-    if model.absoluteWindow then
-        withCrash model.start
-    else
-        Duration.add model.startO 1 (withCrash model.now)
+    resolve model.window.start (withCrash model.now)
 
 
 end : Model -> Date
 end model =
-    if model.absoluteWindow then
-        withCrash model.end
-    else
-        Duration.add model.endO 1 (withCrash model.now)
+    resolve model.window.end (withCrash model.now)
 
 
 type DateSpec
@@ -233,8 +230,8 @@ datespec =
     ("tag" := JD.string `JD.andThen` datespec2)
 
 
-window2 : JD.Decoder Window
-window2 =
+window : JD.Decoder Window
+window =
     JD.succeed Window
         |: ("start" := datespec)
         |: ("end" := datespec)
@@ -242,6 +239,35 @@ window2 =
 
 type alias Window =
     { start : DateSpec, end : DateSpec }
+
+
+datespec_encoder : DateSpec -> JE.Value
+datespec_encoder d =
+    case d of
+        RelativeDate d c ->
+            JE.object
+                [ ( "tag", JE.string "relative" )
+                , ( "duration", JE.string (toString d) )
+                , ( "count", JE.int c )
+                ]
+
+        AbsoluteDate d ->
+            JE.object
+                [ ( "tag", JE.string "absolute" )
+                , ( "date", JE.float (Date.toTime d) )
+                ]
+
+
+window_json : Window -> String
+window_json w =
+    let
+        encoder =
+            JE.object
+                [ ( "start", datespec_encoder w.start )
+                , ( "end", datespec_encoder w.end )
+                ]
+    in
+        JE.encode 4 encoder
 
 
 type Msg
@@ -347,18 +373,6 @@ withCrash maybe =
             Debug.crash "Impossible"
 
 
-window : Model -> ( Date, Date )
-window model =
-    if model.absoluteWindow then
-        ( withCrash model.start, withCrash model.end )
-    else
-        let
-            now =
-                withCrash model.now
-        in
-            ( Duration.add model.startO 1 now, Duration.add model.endO 1 now )
-
-
 parseInt : String -> Int -> ( Int, Bool )
 parseInt val fac =
     let
@@ -399,11 +413,6 @@ parseTime val =
         parseInt val 1000000000
 
 
-
---parseDate : String -> Maybe DateSpec
---parseDate val =
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -417,17 +426,9 @@ update msg model =
             )
 
         CurrentTime now ->
-            let
-                nowd =
-                    Date.fromTime now
-            in
-                ( { model
-                    | now = Just nowd
-                    , start = Just (Duration.add model.startO 1 nowd)
-                    , end = Just nowd
-                  }
-                , Apps.getAppList AppsFailed AppsFetched
-                )
+            ( { model | now = Just (Date.fromTime now) }
+            , Apps.getAppList AppsFailed AppsFetched
+            )
 
         TimerToggle ->
             ( { model | timer = not model.timer }
@@ -446,8 +447,17 @@ update msg model =
             )
 
         SetWindow w ->
-            updateWindow
-                (setWindow w { model | windowSelectorOpen = False })
+            let
+                ( model, cmd ) =
+                    updateWindow
+                        (setWindow w { model | windowSelectorOpen = False })
+            in
+                ( model
+                , Cmd.batch
+                    [ cmd
+                    , Ports.set_key ( "index__window", window_json model.window )
+                    ]
+                )
 
         SetStart str ->
             ( { model | startI = str }, Cmd.none )
