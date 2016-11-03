@@ -46,3 +46,8 @@ table {
 	border-collapse: collapse;
 	border-spacing: 0;
 }
+
+
+.WindowSelector {
+	z-index: 100;
+}

@@ -4,7 +4,7 @@ import Css.File
 import Html
 import Html.App as Html
 import Css exposing (..)
-import Css.Elements exposing (div, h1, h2, h3, body, input)
+import Css.Elements exposing (a, div, h1, h2, h3, body, input)
 import Css.Namespace exposing (namespace)
 
 
@@ -15,8 +15,10 @@ type CssClasses
     | HMenu
     | Header
     | View
+    | Link
     | LevelSelector
     | WindowSelector
+    | WindowSelected
     | WindowError
     | PlusMore
 
@@ -53,6 +55,7 @@ css =
                 [ input [ display inlineBlock, margin4 zero (px 7) zero (px 15) ]
                 ]
             ]
+        , (.) Link [ cursor pointer ]
         , (.) App
             [ marginLeft (px 30)
             , descendants
@@ -78,6 +81,19 @@ css =
             , height (px 130)
             ]
         , (.) PlusMore [ fontSize (px 14) ]
+        , (.) WindowSelector
+            [ display inlineBlock
+            , backgroundColor (hex "FFFFFF")
+            , right zero
+            , top (px 37)
+            , position absolute
+            , textAlign right
+            , border3 (px 1) solid (hex "979797")
+            , children
+                [ a [ borderBottom3 (px 1) solid (hex "979797") ]
+                ]
+            ]
+        , (.) WindowSelected [ backgroundColor (hex "D8D8D8") ]
         , (.) WindowError
             [ border3 (px 1) solid (hex "ff0000")
             ]

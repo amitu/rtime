@@ -47,7 +47,6 @@ type alias Model =
     , ceilingE : Bool
     , globalLevel : Bool
     , windowSelectorOpen : Bool
-    , absolutePopup : Bool
     , window : Window
     , absoluteWindow :
         -- this decides if start or start0 + now is to be used
@@ -82,7 +81,6 @@ init store =
     , absoluteWindow = False
     , window = RelativeWindow Duration.Minute -10 Duration.Minute 0
     , windowSelectorOpen = False
-    , absolutePopup = False
     , startO = tenMins
     , endO = zero
     , now = Nothing
@@ -246,7 +244,6 @@ type Msg
     | OnCeiling String
     | CommitCeiling
     | ToggleWindowSelector
-    | ToggleAbsoluteWindowPopup
     | SetWindow Window
 
 
@@ -399,16 +396,10 @@ update msg model =
             , Cmd.none
             )
 
-        ToggleAbsoluteWindowPopup ->
-            ( { model | absolutePopup = not model.absolutePopup }
-            , Cmd.none
-            )
-
         SetWindow w ->
             updateWindow
                 { model
                     | windowSelectorOpen = False
-                    , absolutePopup = False
                     , window = w
                 }
 
@@ -577,14 +568,41 @@ levelSelector model =
         text ""
 
 
+windowLink : Duration -> Int -> Model -> Html.Html Msg
+windowLink d count model =
+    let
+        selected =
+            case model.window of
+                RelativeWindow d1 c1 (Duration.Minute) 0 ->
+                    d1 == d && c1 == count
+
+                _ ->
+                    False
+    in
+        a
+            ([ onClick
+                (SetWindow
+                    (RelativeWindow d count Duration.Minute 0)
+                )
+             ]
+                ++ if selected then
+                    [ class [ RCSS.WindowSelected ] ]
+                   else
+                    []
+            )
+            [ text <| (duration2text d count) ++ " → now" ]
+
+
 windowSelector : Model -> Html Msg
 windowSelector model =
     if model.windowSelectorOpen then
         div [ class [ RCSS.WindowSelector ] ]
-            [ a [ onClick (SetWindow (RelativeWindow Duration.Minute -10 Duration.Minute 0)) ] [ text "Last 10 Mins" ]
-            , a [ onClick (SetWindow (RelativeWindow Duration.Hour -1 Duration.Minute 0)) ] [ text "Last 1 Hour" ]
-            , a [] [ text "three" ]
-            , a [ onClick ToggleAbsoluteWindowPopup ] [ text "custom" ]
+            [ windowLink Duration.Minute -10 model
+            , windowLink Duration.Hour -1 model
+            , windowLink Duration.Hour -6 model
+            , windowLink Duration.Day -1 model
+            , windowLink Duration.Day -2 model
+            , windowLink Duration.Day -7 model
             ]
     else
         text ""
@@ -674,7 +692,7 @@ view model =
             ([ div [ class [ RCSS.Header ] ]
                 [ h1 [] [ text "rtime: Coverfox" ]
                 , div [ class [ RCSS.HMenu ] ]
-                    [ a [ onClick ToggleWindowSelector ] [ windowText model ]
+                    [ a [ onClick ToggleWindowSelector, class [ RCSS.Link ] ] [ windowText model ]
                     , windowSelector model
                     , input
                         [ type' "checkbox"
