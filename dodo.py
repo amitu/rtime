@@ -55,6 +55,7 @@ def task_elm():
         "targets": ["src/rtime/static/elm.js"],
         "file_dep": (
             glob.glob("src/relm/*.elm") + glob.glob("src/relm/*/*.elm")
+            + glob.glob("src/relm/Native/*.js")
             + ["src/rtime/static/elm-extra.js"]
         )
     }
