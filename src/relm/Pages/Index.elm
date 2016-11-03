@@ -14,6 +14,8 @@ import Date.Extra.Duration as Duration exposing (Duration, zeroDelta)
 import String
 import Task
 import Basics.Extra exposing (never)
+import Json.Decode as JD exposing ((:=))
+import Json.Decode.Extra exposing ((|:))
 
 
 -- extra
@@ -46,6 +48,7 @@ type alias Model =
     , globalLevel : Bool
     , windowSelectorOpen : Bool
     , absolutePopup : Bool
+    , window : Window
     , absoluteWindow :
         -- this decides if start or start0 + now is to be used
         Bool
@@ -77,10 +80,11 @@ init store =
     , end = Nothing
     , start = Nothing
     , absoluteWindow = False
+    , window = RelativeWindow Duration.Minute -10 Duration.Minute 0
     , windowSelectorOpen = False
     , absolutePopup = False
     , startO = tenMins
-    , endO = Duration.Delta zeroDelta
+    , endO = zero
     , now = Nothing
     , store = Dict.fromList store
     }
@@ -108,11 +112,92 @@ init store =
                         )
                 }
             )
+        |> readKey "window"
+            (\v m ->
+                { m
+                    | window =
+                        (JD.decodeString windowDecoder v
+                            |> Result.toMaybe
+                            |> Maybe.withDefault
+                                (RelativeWindow
+                                    Duration.Minute
+                                    -10
+                                    Duration.Minute
+                                    0
+                                )
+                        )
+                }
+            )
+
+
+str2dur : String -> JD.Decoder Duration
+str2dur val =
+    case val of
+        "Millisecond" ->
+            JD.succeed Duration.Millisecond
+
+        "Second" ->
+            JD.succeed Duration.Second
+
+        "Minute" ->
+            JD.succeed Duration.Minute
+
+        "Hour" ->
+            JD.succeed Duration.Hour
+
+        "Day" ->
+            JD.succeed Duration.Day
+
+        "Week" ->
+            JD.succeed Duration.Week
+
+        "Month" ->
+            JD.succeed Duration.Month
+
+        "Year" ->
+            JD.succeed Duration.Year
+
+        _ ->
+            JD.fail ("unknown val " ++ val)
+
+
+windowDecoder2 : String -> JD.Decoder Window
+windowDecoder2 tag =
+    case tag of
+        "absolute" ->
+            JD.succeed AbsoluteWindow
+                |: ("start" := JD.map Date.fromTime JD.float)
+                |: ("end" := JD.map Date.fromTime JD.float)
+
+        "relative" ->
+            JD.succeed RelativeWindow
+                |: ("start" := JD.string `JD.andThen` str2dur)
+                |: ("start_count" := JD.int)
+                |: ("end" := JD.string `JD.andThen` str2dur)
+                |: ("end_count" := JD.int)
+
+        _ ->
+            JD.fail ("Invalid tag " ++ tag)
+
+
+windowDecoder : JD.Decoder Window
+windowDecoder =
+    ("tag" := JD.string `JD.andThen` windowDecoder2)
+
+
+zero : Duration
+zero =
+    Duration.Delta zeroDelta
 
 
 tenMins : Duration
 tenMins =
     Duration.Delta { zeroDelta | minute = -10 }
+
+
+oneHr : Duration
+oneHr =
+    Duration.Delta { zeroDelta | minute = -60 }
 
 
 readKey : String -> (String -> Model -> Model) -> Model -> Model
@@ -141,17 +226,9 @@ end model =
         Duration.add model.endO 1 (withCrash model.now)
 
 
-type WindowChoice
-    = TenMins
-    | OneMin
-    | OneHour
-    | TwoHours
-    | SixHours
-    | OneDay
-    | TwoDays
-    | AWeek
-    | AMonth
-    | Custom Date Date
+type Window
+    = RelativeWindow Duration Int Duration Int
+    | AbsoluteWindow Date Date
 
 
 type Msg
@@ -170,7 +247,7 @@ type Msg
     | CommitCeiling
     | ToggleWindowSelector
     | ToggleAbsoluteWindowPopup
-    | SetWindow Duration
+    | SetWindow Window
 
 
 updateApps :
@@ -327,14 +404,12 @@ update msg model =
             , Cmd.none
             )
 
-        SetWindow d ->
+        SetWindow w ->
             updateWindow
                 { model
                     | windowSelectorOpen = False
                     , absolutePopup = False
-                    , absoluteWindow = False
-                    , startO = d
-                    , endO = Duration.Delta zeroDelta
+                    , window = w
                 }
 
         OnFloor val ->
@@ -506,13 +581,65 @@ windowSelector : Model -> Html Msg
 windowSelector model =
     if model.windowSelectorOpen then
         div [ class [ RCSS.WindowSelector ] ]
-            [ a [ onClick (SetWindow tenMins) ] [ text "one" ]
-            , a [] [ text "two" ]
+            [ a [ onClick (SetWindow (RelativeWindow Duration.Minute -10 Duration.Minute 0)) ] [ text "Last 10 Mins" ]
+            , a [ onClick (SetWindow (RelativeWindow Duration.Hour -1 Duration.Minute 0)) ] [ text "Last 1 Hour" ]
             , a [] [ text "three" ]
             , a [ onClick ToggleAbsoluteWindowPopup ] [ text "custom" ]
             ]
     else
         text ""
+
+
+duration2text : Duration -> Int -> String
+duration2text d count =
+    if count == 0 then
+        "now"
+    else
+        (toString count)
+            ++ " "
+            ++ case d of
+                Duration.Millisecond ->
+                    "millisecond"
+
+                Duration.Second ->
+                    "second"
+
+                Duration.Minute ->
+                    "minute"
+
+                Duration.Hour ->
+                    "hour"
+
+                Duration.Day ->
+                    "day"
+
+                Duration.Week ->
+                    "week"
+
+                Duration.Month ->
+                    "month"
+
+                Duration.Year ->
+                    "year"
+
+                _ ->
+                    Debug.crash "impossible"
+
+
+windowText : Model -> Html Msg
+windowText model =
+    let
+        ( start, end ) =
+            case model.window of
+                AbsoluteWindow start end ->
+                    ( (toString start), (toString end) )
+
+                RelativeWindow start start_count end end_count ->
+                    ( (duration2text start start_count)
+                    , (duration2text end end_count)
+                    )
+    in
+        text (start ++ " → " ++ end)
 
 
 view : Model -> Html Msg
@@ -547,7 +674,7 @@ view model =
             ([ div [ class [ RCSS.Header ] ]
                 [ h1 [] [ text "rtime: Coverfox" ]
                 , div [ class [ RCSS.HMenu ] ]
-                    [ a [ onClick ToggleWindowSelector ] [ text "Last 10 Minutes" ]
+                    [ a [ onClick ToggleWindowSelector ] [ windowText model ]
                     , windowSelector model
                     , input
                         [ type' "checkbox"
