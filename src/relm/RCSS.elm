@@ -26,6 +26,11 @@ type CssClasses
     | PlusMore
 
 
+zIndex : Int -> Mixin
+zIndex i =
+    property "z-index" <| toString i
+
+
 css : Css.Stylesheet
 css =
     (stylesheet << namespace "")
@@ -99,6 +104,7 @@ css =
             , width (px 443)
             , position absolute
             , border3 (px 1) solid (hex "979797")
+            , zIndex 100
             , children
                 [ a
                     [ borderBottom3 (px 1) solid (hex "979797")
