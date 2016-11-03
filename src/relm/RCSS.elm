@@ -15,6 +15,7 @@ type CssClasses
     | HMenu
     | Header
     | View
+    | LevelSelector
     | WindowSelector
     | WindowError
     | PlusMore
@@ -80,7 +81,7 @@ css =
         , (.) WindowError
             [ border3 (px 1) solid (hex "ff0000")
             ]
-        , (.) WindowSelector
+        , (.) LevelSelector
             [ display inlineBlock
             , right zero
             , top (px 37)

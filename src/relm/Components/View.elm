@@ -19,7 +19,6 @@ import Svg as S exposing (svg)
 import Svg.Attributes as S
 import Svg.Events as S
 import Date exposing (Date)
-import Date.Extra.Duration as Duration exposing (Duration)
 import RemoteData as RD
 import Http
 import Dict exposing (Dict)
@@ -51,10 +50,6 @@ type alias Model =
     , checked : Bool
     , start : Date
     , end : Date
-    , startO : Duration
-    , endO : Duration
-    , now : Date
-    , absolute : Bool
     , floor : Int
     , ceiling : Int
     , globalFloor : Int
@@ -75,13 +70,9 @@ init :
     -> Dict String String
     -> Date
     -> Date
-    -> Duration
-    -> Duration
-    -> Bool
-    -> Date
     -> Apps.View
     -> ( Model, Cmd Msg )
-init floor floorI ceiling ceilingI global app store start end startO endO absolute now view =
+init floor floorI ceiling ceilingI global app store start end view =
     { data = RD.NotAsked
     , app = app
     , name = view.name
@@ -97,10 +88,6 @@ init floor floorI ceiling ceilingI global app store start end startO endO absolu
     , globalLevels = global
     , start = start
     , end = end
-    , startO = startO
-    , endO = endO
-    , now = now
-    , absolute = absolute
     }
         |> readCheckedKey store
         |> readGraphKey store
@@ -165,17 +152,13 @@ updateLevels floor floorI ceiling ceilingI global model =
         ( model, fetchGraph model )
 
 
-updateWindow : Date -> Date -> Duration -> Duration -> Date -> Bool -> Model -> ( Model, Cmd Msg )
-updateWindow start end startO endO now absolute model =
+updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
+updateWindow start end model =
     let
         model =
             { model
                 | start = start
                 , end = end
-                , startO = startO
-                , endO = endO
-                , now = now
-                , absolute = absolute
             }
     in
         ( model, fetchGraph model )
@@ -223,30 +206,14 @@ ceilingI model =
                 "unknown"
 
 
-start : Model -> Date
-start model =
-    if model.absolute then
-        model.start
-    else
-        Duration.add model.startO 1 model.now
-
-
-end : Model -> Date
-end model =
-    if model.absolute then
-        model.end
-    else
-        Duration.add model.endO 1 model.now
-
-
 fetchGraph : Model -> Cmd Msg
 fetchGraph model =
     Ports.getGraph
         model.app
         model.name
         ""
-        (start model)
-        (end model)
+        model.start
+        model.end
         (floor model)
         (ceiling model)
 

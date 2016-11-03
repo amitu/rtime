@@ -16,7 +16,6 @@ import Html.Events exposing (onClick)
 import Array exposing (Array)
 import Html.App
 import Date exposing (Date)
-import Date.Extra.Duration as Duration exposing (Duration)
 import Dict exposing (Dict)
 
 
@@ -53,13 +52,9 @@ init :
     -> Dict String String
     -> Date
     -> Date
-    -> Duration
-    -> Duration
-    -> Bool
-    -> Date
     -> Apps.App
     -> ( Model, Cmd Msg )
-init floor floorI ceiling ceilingI global store start end startO endO absolute now app =
+init floor floorI ceiling ceilingI global store start end app =
     let
         ( models, cmds ) =
             List.unzip
@@ -74,10 +69,6 @@ init floor floorI ceiling ceilingI global store start end startO endO absolute n
                         store
                         start
                         end
-                        startO
-                        endO
-                        absolute
-                        now
                     )
                     app.views
                 )
@@ -154,14 +145,10 @@ updateLevels floor floorI ceiling ceilingI global model =
 updateWindow :
     Date
     -> Date
-    -> Duration
-    -> Duration
-    -> Date
-    -> Bool
     -> Model
     -> ( Model, Cmd Msg )
-updateWindow start end startO endO now absolute model =
-    updateViews (View.updateWindow start end startO endO now absolute) model
+updateWindow start end model =
+    updateViews (View.updateWindow start end) model
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )

@@ -44,6 +44,8 @@ type alias Model =
     , ceilingI : String
     , ceilingE : Bool
     , globalLevel : Bool
+    , windowSelectorOpen : Bool
+    , absolutePopup : Bool
     , absoluteWindow :
         -- this decides if start or start0 + now is to be used
         Bool
@@ -75,7 +77,9 @@ init store =
     , end = Nothing
     , start = Nothing
     , absoluteWindow = False
-    , startO = Duration.Delta { zeroDelta | minute = -10 }
+    , windowSelectorOpen = False
+    , absolutePopup = False
+    , startO = tenMins
     , endO = Duration.Delta zeroDelta
     , now = Nothing
     , store = Dict.fromList store
@@ -106,6 +110,11 @@ init store =
             )
 
 
+tenMins : Duration
+tenMins =
+    Duration.Delta { zeroDelta | minute = -10 }
+
+
 readKey : String -> (String -> Model -> Model) -> Model -> Model
 readKey key fn model =
     case Dict.get ("index__" ++ key) model.store of
@@ -114,6 +123,35 @@ readKey key fn model =
 
         Nothing ->
             model
+
+
+start : Model -> Date
+start model =
+    if model.absoluteWindow then
+        withCrash model.start
+    else
+        Duration.add model.startO 1 (withCrash model.now)
+
+
+end : Model -> Date
+end model =
+    if model.absoluteWindow then
+        withCrash model.end
+    else
+        Duration.add model.endO 1 (withCrash model.now)
+
+
+type WindowChoice
+    = TenMins
+    | OneMin
+    | OneHour
+    | TwoHours
+    | SixHours
+    | OneDay
+    | TwoDays
+    | AWeek
+    | AMonth
+    | Custom Date Date
 
 
 type Msg
@@ -130,6 +168,9 @@ type Msg
     | CommitFloor
     | OnCeiling String
     | CommitCeiling
+    | ToggleWindowSelector
+    | ToggleAbsoluteWindowPopup
+    | SetWindow Duration
 
 
 updateApps :
@@ -173,14 +214,7 @@ updateLevels model cmd =
 updateWindow : Model -> ( Model, Cmd Msg )
 updateWindow m =
     updateApps
-        (App.updateWindow
-            (withCrash m.start)
-            (withCrash m.end)
-            m.startO
-            m.endO
-            (withCrash m.now)
-            m.absoluteWindow
-        )
+        (App.updateWindow (start m) (end m))
         m
         Cmd.none
 
@@ -283,6 +317,26 @@ update msg model =
                     ( "index__global_level", (toString <| not model.globalLevel) )
                 )
 
+        ToggleWindowSelector ->
+            ( { model | windowSelectorOpen = not model.windowSelectorOpen }
+            , Cmd.none
+            )
+
+        ToggleAbsoluteWindowPopup ->
+            ( { model | absolutePopup = not model.absolutePopup }
+            , Cmd.none
+            )
+
+        SetWindow d ->
+            updateWindow
+                { model
+                    | windowSelectorOpen = False
+                    , absolutePopup = False
+                    , absoluteWindow = False
+                    , startO = d
+                    , endO = Duration.Delta zeroDelta
+                }
+
         OnFloor val ->
             let
                 ( v, ok ) =
@@ -353,12 +407,8 @@ update msg model =
                                 model.ceilingI
                                 model.globalLevel
                                 model.store
-                                (withCrash model.start)
-                                (withCrash model.end)
-                                model.startO
-                                model.endO
-                                model.absoluteWindow
-                                (withCrash model.now)
+                                (start model)
+                                (end model)
                             )
                             apps
                         )
@@ -417,7 +467,7 @@ update msg model =
 levelSelector : Model -> Html Msg
 levelSelector model =
     if model.globalLevel then
-        div [ class [ RCSS.WindowSelector ] ]
+        div [ class [ RCSS.LevelSelector ] ]
             [ div
                 [ if model.ceilingE then
                     class [ RCSS.WindowError ]
@@ -447,6 +497,19 @@ levelSelector model =
                     ]
                     []
                 ]
+            ]
+    else
+        text ""
+
+
+windowSelector : Model -> Html Msg
+windowSelector model =
+    if model.windowSelectorOpen then
+        div [ class [ RCSS.WindowSelector ] ]
+            [ a [ onClick (SetWindow tenMins) ] [ text "one" ]
+            , a [] [ text "two" ]
+            , a [] [ text "three" ]
+            , a [ onClick ToggleAbsoluteWindowPopup ] [ text "custom" ]
             ]
     else
         text ""
@@ -484,7 +547,8 @@ view model =
             ([ div [ class [ RCSS.Header ] ]
                 [ h1 [] [ text "rtime: Coverfox" ]
                 , div [ class [ RCSS.HMenu ] ]
-                    [ a [] [ text "Last 10 Minutes" ]
+                    [ a [ onClick ToggleWindowSelector ] [ text "Last 10 Minutes" ]
+                    , windowSelector model
                     , input
                         [ type' "checkbox"
                         , checked model.timer
@@ -494,11 +558,8 @@ view model =
                     , a [ onClick TimerToggle ]
                         [ text
                             (if model.timer then
-                                ((toString
+                                toString
                                     (model.timerPeriod - model.timerCurrent)
-                                 )
-                                    ++ "s"
-                                )
                              else
                                 "paused"
                             )
