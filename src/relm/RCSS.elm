@@ -4,7 +4,7 @@ import Css.File
 import Html
 import Html.App as Html
 import Css exposing (..)
-import Css.Elements exposing (a, div, h1, h2, h3, body, input)
+import Css.Elements exposing (a, div, h1, h2, h3, body, input, label)
 import Css.Namespace exposing (namespace)
 
 
@@ -16,8 +16,10 @@ type CssClasses
     | Header
     | View
     | Link
+    | ALink
     | LevelSelector
     | WindowSelector
+    | WindowSelectorOdd
     | WindowSelected
     | WindowError
     | PlusMore
@@ -48,14 +50,20 @@ css =
             [ position absolute
             , top zero
             , right zero
-            , paddingTop (px 12)
             , paddingRight (px 10)
             , fontSize (px 14)
             , children
                 [ input [ display inlineBlock, margin4 zero (px 7) zero (px 15) ]
                 ]
             ]
-        , (.) Link [ cursor pointer ]
+        , (.) Link
+            [ cursor pointer
+            , lineHeight (px 37)
+            , display inlineBlock
+            , paddingLeft (px 5)
+            , paddingRight (px 5)
+            ]
+        , (.) ALink [ backgroundColor (hex "D8D8D8") ]
         , (.) App
             [ marginLeft (px 30)
             , descendants
@@ -86,11 +94,36 @@ css =
             , backgroundColor (hex "FFFFFF")
             , right zero
             , top (px 37)
+            , width (px 443)
             , position absolute
-            , textAlign right
             , border3 (px 1) solid (hex "979797")
             , children
-                [ a [ borderBottom3 (px 1) solid (hex "979797") ]
+                [ a
+                    [ borderBottom3 (px 1) solid (hex "979797")
+                    , textAlign center
+                    , display inlineBlock
+                    , width (pct 50)
+                    , padding (px 5)
+                    , nthChild "odd"
+                        [ borderRight3 (px 1) solid (hex "979797")
+                        ]
+                    ]
+                , div
+                    [ paddingTop (px 12)
+                    , descendants
+                        [ label
+                            [ display block, textAlign right ]
+                        , input
+                            [ height (px 27)
+                            , width (px 303)
+                            , display inlineBlock
+                            , marginLeft (px 20)
+                            , marginRight (px 50)
+                            , marginBottom (px 12)
+                            , textAlign left
+                            ]
+                        ]
+                    ]
                 ]
             ]
         , (.) WindowSelected [ backgroundColor (hex "D8D8D8") ]

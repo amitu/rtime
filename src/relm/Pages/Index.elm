@@ -534,17 +534,17 @@ levelSelector : Model -> Html Msg
 levelSelector model =
     if model.globalLevel then
         div [ class [ RCSS.LevelSelector ] ]
-            [ div
-                [ if model.ceilingE then
-                    class [ RCSS.WindowError ]
-                  else
-                    class []
-                ]
+            [ div []
                 [ label [] [ text "Ceiling" ]
                 , input
                     [ value model.ceilingI
                     , onInput OnCeiling
                     , onBlur CommitCeiling
+                    , (if model.ceilingE then
+                        class [ RCSS.WindowError ]
+                       else
+                        class []
+                      )
                     ]
                     []
                 ]
@@ -603,6 +603,10 @@ windowSelector model =
             , windowLink Duration.Day -1 model
             , windowLink Duration.Day -2 model
             , windowLink Duration.Day -7 model
+            , div []
+                [ label [] [ text "Start", input [] [] ]
+                , label [] [ text "End", input [] [] ]
+                ]
             ]
     else
         text ""
@@ -692,7 +696,18 @@ view model =
             ([ div [ class [ RCSS.Header ] ]
                 [ h1 [] [ text "rtime: Coverfox" ]
                 , div [ class [ RCSS.HMenu ] ]
-                    [ a [ onClick ToggleWindowSelector, class [ RCSS.Link ] ] [ windowText model ]
+                    [ a
+                        [ onClick ToggleWindowSelector
+                        , class
+                            ([ RCSS.Link ]
+                                ++ (if model.windowSelectorOpen then
+                                        [ RCSS.ALink ]
+                                    else
+                                        []
+                                   )
+                            )
+                        ]
+                        [ windowText model ]
                     , windowSelector model
                     , input
                         [ type' "checkbox"
