@@ -4,7 +4,7 @@ import Css.File
 import Html
 import Html.App as Html
 import Css exposing (..)
-import Css.Elements exposing (a, div, h1, h2, h3, body, input, label)
+import Css.Elements exposing (a, div, h1, h2, h3, body, input, label, form)
 import Css.Namespace exposing (namespace)
 
 
@@ -17,6 +17,7 @@ type CssClasses
     | View
     | Link
     | ALink
+    | Hidden
     | LevelSelector
     | WindowSelector
     | WindowSelectorOdd
@@ -62,6 +63,7 @@ css =
             , display inlineBlock
             , paddingLeft (px 5)
             , paddingRight (px 5)
+            , hover [ backgroundColor (hex "D8D8D8") ]
             ]
         , (.) ALink [ backgroundColor (hex "D8D8D8") ]
         , (.) App
@@ -104,20 +106,23 @@ css =
                     , display inlineBlock
                     , width (pct 50)
                     , padding (px 8)
+                    , cursor pointer
                     , nthChild "odd"
                         [ borderRight3 (px 1) solid (hex "979797")
                         ]
+                    , hover
+                        [ backgroundColor (hex "D8D8D8") ]
                     ]
-                , div
+                , form
                     [ paddingTop (px 12)
                     , descendants
                         [ label
-                            [ display block, textAlign right ]
+                            [ display block, textAlign right, marginLeft (px 15) ]
                         , input
                             [ height (px 27)
                             , width (px 303)
                             , display inlineBlock
-                            , marginLeft (px 20)
+                            , marginLeft (px 13)
                             , marginRight (px 50)
                             , marginBottom (px 12)
                             , textAlign left
@@ -150,6 +155,7 @@ css =
                     ]
                 ]
             ]
+        , (.) Hidden [ display none, position absolute, top (px -2000) ]
         ]
 
 

@@ -1,8 +1,8 @@
 module Pages.Index exposing (Model, Msg(..), init, update, view, subscriptions)
 
-import Html exposing (Html, text, ul, li, a, h1, div, input, label)
+import Html exposing (Html, text, ul, li, a, h1, div, input, label, form)
 import Html.Attributes exposing (type', checked, value, tabindex)
-import Html.Events exposing (onClick, onBlur, onInput)
+import Html.Events exposing (onClick, onBlur, onInput, onSubmit)
 import Html.App
 import RemoteData as RD
 import Http
@@ -55,6 +55,10 @@ type alias Model =
     , end : Maybe Date
     , startO : Duration
     , endO : Duration
+    , startI : String
+    , endI : String
+    , startE : Bool
+    , endE : Bool
     , now : Maybe Date
     , store : Dict String String
     }
@@ -79,11 +83,18 @@ init store =
     , end = Nothing
     , start = Nothing
     , absoluteWindow = False
-    , window = RelativeWindow Duration.Minute -10 Duration.Minute 0
+    , window =
+        { start = RelativeDate Duration.Minute -10
+        , end = RelativeDate Duration.Minute 0
+        }
     , windowSelectorOpen = False
     , startO = tenMins
     , endO = zero
     , now = Nothing
+    , startI = "-10 minute"
+    , endI = "now"
+    , startE = False
+    , endE = False
     , store = Dict.fromList store
     }
         |> readKey "timer" (\v m -> { m | timer = v == "True" })
@@ -112,19 +123,15 @@ init store =
             )
         |> readKey "window"
             (\v m ->
-                { m
-                    | window =
-                        (JD.decodeString windowDecoder v
-                            |> Result.toMaybe
-                            |> Maybe.withDefault
-                                (RelativeWindow
-                                    Duration.Minute
-                                    -10
-                                    Duration.Minute
-                                    0
-                                )
-                        )
-                }
+                setWindow
+                    (JD.decodeString window2 v
+                        |> Result.toMaybe
+                        |> Maybe.withDefault
+                            { start = RelativeDate Duration.Minute -10
+                            , end = RelativeDate Duration.Minute 0
+                            }
+                    )
+                    m
             )
 
 
@@ -157,30 +164,6 @@ str2dur val =
 
         _ ->
             JD.fail ("unknown val " ++ val)
-
-
-windowDecoder2 : String -> JD.Decoder Window
-windowDecoder2 tag =
-    case tag of
-        "absolute" ->
-            JD.succeed AbsoluteWindow
-                |: ("start" := JD.map Date.fromTime JD.float)
-                |: ("end" := JD.map Date.fromTime JD.float)
-
-        "relative" ->
-            JD.succeed RelativeWindow
-                |: ("start" := JD.string `JD.andThen` str2dur)
-                |: ("start_count" := JD.int)
-                |: ("end" := JD.string `JD.andThen` str2dur)
-                |: ("end_count" := JD.int)
-
-        _ ->
-            JD.fail ("Invalid tag " ++ tag)
-
-
-windowDecoder : JD.Decoder Window
-windowDecoder =
-    ("tag" := JD.string `JD.andThen` windowDecoder2)
 
 
 zero : Duration
@@ -224,9 +207,41 @@ end model =
         Duration.add model.endO 1 (withCrash model.now)
 
 
-type Window
-    = RelativeWindow Duration Int Duration Int
-    | AbsoluteWindow Date Date
+type DateSpec
+    = AbsoluteDate Date
+    | RelativeDate Duration Int
+
+
+datespec2 : String -> JD.Decoder DateSpec
+datespec2 tag =
+    case tag of
+        "absolute" ->
+            JD.succeed AbsoluteDate
+                |: ("date" := JD.map Date.fromTime JD.float)
+
+        "relative" ->
+            JD.succeed RelativeDate
+                |: ("duration" := JD.string `JD.andThen` str2dur)
+                |: ("count" := JD.int)
+
+        _ ->
+            JD.fail ("Invalid tag " ++ tag)
+
+
+datespec : JD.Decoder DateSpec
+datespec =
+    ("tag" := JD.string `JD.andThen` datespec2)
+
+
+window2 : JD.Decoder Window
+window2 =
+    JD.succeed Window
+        |: ("start" := datespec)
+        |: ("end" := datespec)
+
+
+type alias Window =
+    { start : DateSpec, end : DateSpec }
 
 
 type Msg
@@ -245,6 +260,9 @@ type Msg
     | CommitCeiling
     | ToggleWindowSelector
     | SetWindow Window
+    | SetStart String
+    | SetEnd String
+    | CommitWindow
 
 
 updateApps :
@@ -283,6 +301,32 @@ updateLevels model cmd =
         )
         model
         cmd
+
+
+win2strs : Window -> ( String, String )
+win2strs w =
+    ( case w.start of
+        AbsoluteDate d ->
+            (toString d)
+
+        RelativeDate d c ->
+            (duration2text d c)
+    , case w.end of
+        AbsoluteDate d ->
+            (toString d)
+
+        RelativeDate d c ->
+            (duration2text d c)
+    )
+
+
+setWindow : Window -> Model -> Model
+setWindow window model =
+    let
+        ( startI, endI ) =
+            win2strs window
+    in
+        { model | window = window, startI = startI, endI = endI }
 
 
 updateWindow : Model -> ( Model, Cmd Msg )
@@ -355,6 +399,11 @@ parseTime val =
         parseInt val 1000000000
 
 
+
+--parseDate : String -> Maybe DateSpec
+--parseDate val =
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -398,10 +447,16 @@ update msg model =
 
         SetWindow w ->
             updateWindow
-                { model
-                    | windowSelectorOpen = False
-                    , window = w
-                }
+                (setWindow w { model | windowSelectorOpen = False })
+
+        SetStart str ->
+            ( { model | startI = str }, Cmd.none )
+
+        SetEnd str ->
+            ( { model | endI = str }, Cmd.none )
+
+        CommitWindow ->
+            ( Debug.log "CommitWindow" { model | windowSelectorOpen = False }, Cmd.none )
 
         OnFloor val ->
             let
@@ -568,12 +623,22 @@ levelSelector model =
         text ""
 
 
+datespec2text : DateSpec -> String
+datespec2text ds =
+    case ds of
+        RelativeDate d c ->
+            (toString c) ++ " " ++ (toString d)
+
+        AbsoluteDate d ->
+            (toString d)
+
+
 windowLink : Duration -> Int -> Model -> Html.Html Msg
 windowLink d count model =
     let
         selected =
-            case model.window of
-                RelativeWindow d1 c1 (Duration.Minute) 0 ->
+            case model.window.start of
+                RelativeDate d1 c1 ->
                     d1 == d && c1 == count
 
                 _ ->
@@ -582,7 +647,9 @@ windowLink d count model =
         a
             ([ onClick
                 (SetWindow
-                    (RelativeWindow d count Duration.Minute 0)
+                    { start = RelativeDate d count
+                    , end = RelativeDate Duration.Minute 0
+                    }
                 )
              ]
                 ++ if selected then
@@ -603,9 +670,11 @@ windowSelector model =
             , windowLink Duration.Day -1 model
             , windowLink Duration.Day -2 model
             , windowLink Duration.Day -7 model
-            , div []
-                [ label [] [ text "Start", input [] [] ]
-                , label [] [ text "End", input [] [] ]
+            , form [ onSubmit CommitWindow ]
+                [ label [] [ text "Start", input [ onInput SetStart, value model.startI ] [] ]
+                , label [] [ text "End", input [ onInput SetEnd, value model.endI ] [] ]
+                , input [ type' "submit", value " ", class [ RCSS.Hidden ] ]
+                    []
                 ]
             ]
     else
@@ -652,14 +721,7 @@ windowText : Model -> Html Msg
 windowText model =
     let
         ( start, end ) =
-            case model.window of
-                AbsoluteWindow start end ->
-                    ( (toString start), (toString end) )
-
-                RelativeWindow start start_count end end_count ->
-                    ( (duration2text start start_count)
-                    , (duration2text end end_count)
-                    )
+            win2strs model.window
     in
         text (start ++ " → " ++ end)
 
