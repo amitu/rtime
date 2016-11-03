@@ -103,7 +103,7 @@ css =
                     , textAlign center
                     , display inlineBlock
                     , width (pct 50)
-                    , padding (px 5)
+                    , padding (px 8)
                     , nthChild "odd"
                         [ borderRight3 (px 1) solid (hex "979797")
                         ]

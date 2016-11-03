@@ -420,7 +420,7 @@ trapezoid ( current, ( t1, v1o ), ( t2, v2o ) ) =
         S.g []
             [ S.polygon
                 [ S.points points
-                , S.fill "blue"
+                , S.fill "#42B1FD"
                   -- , S.onMouseOver (TrapMouseIn current)
                   -- , S.onMouseOut (TrapMouseOut current)
                 ]
@@ -433,7 +433,7 @@ trapezoid ( current, ( t1, v1o ), ( t2, v2o ) ) =
                 , y1 -0.5
                 , x2 t2
                 , y2 v2o
-                , S.stroke "red"
+                , S.stroke "white"
                 , S.strokeWidth "1"
                 , S.onClick (LineClick t2)
                 ]
