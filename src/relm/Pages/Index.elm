@@ -27,7 +27,6 @@ import Helpers exposing (imap, rdpimap, iamap, class)
 import RCSS
 import Out
 import Ports
-import Native.Upper
 
 
 type alias Model =
@@ -658,7 +657,7 @@ windowText model =
                     , (duration2text end end_count)
                     )
     in
-        text (Native.Upper.upper (start ++ " → " ++ end))
+        text (start ++ " → " ++ end)
 
 
 view : Model -> Html Msg

@@ -50,12 +50,12 @@ def task_elm():
     return {
         "actions": [
             "cd src/relm && elm-make --warn --output elm-stuff/elm.js Main.elm",
-            "cat src/relm/elm-stuff/elm.js src/rtime/static/elm-extra.js > src/rtime/static/elm.js",
+            "cat src/rtime/static/moment.min.js src/relm/elm-stuff/elm.js src/rtime/static/elm-extra.js > src/rtime/static/elm.js",
         ],
         "targets": ["src/rtime/static/elm.js"],
         "file_dep": (
             glob.glob("src/relm/*.elm") + glob.glob("src/relm/*/*.elm")
             + glob.glob("src/relm/Native/*.js")
-            + ["src/rtime/static/elm-extra.js"]
+            + ["src/rtime/static/elm-extra.js", "dodo.py"]
         )
     }
