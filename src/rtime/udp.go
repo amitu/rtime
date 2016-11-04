@@ -36,7 +36,7 @@ func HandlePacket(data []byte, p *packet) {
 	if err != nil {
 		LOGGER.Warn(
 			"udp_packet_parse_failed", "err", errors.ErrorStack(err),
-			"packet", string(data),
+			"packet", string(uncompressed),
 		)
 		return
 	}
