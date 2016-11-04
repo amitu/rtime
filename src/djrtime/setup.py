@@ -8,5 +8,6 @@ setup(
     license='',
     author='Vinay Karanam',
     author_email='',
-    description=''
+    description='',
+    requires=['python-snappy==0.5, rtime==0.1.0a2'],
 )

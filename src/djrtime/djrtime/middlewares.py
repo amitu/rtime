@@ -9,6 +9,7 @@ import types
 from django.core.serializers.json import DjangoJSONEncoder
 
 import rtime.utils as rtime_utils
+import snappy
 
 from .conf import settings
 
@@ -68,5 +69,5 @@ class TimeItMiddleware(object):
     def send(**msg):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         data = json.dumps(msg, cls=DjangoJSONEncoder, default=lambda x: str(x))
-        sock.sendto(data, settings.RTIME_ADDRESS)
+        sock.sendto(snappy.compress(data), settings.RTIME_ADDRESS)
         logger.debug('data sent to {}'.format(settings.RTIME_ADDRESS))
