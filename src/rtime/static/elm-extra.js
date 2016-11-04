@@ -78,9 +78,7 @@ app.ports.get_graph.subscribe(function(val) {
     oReq.open(
         "GET", (
             // app view host start end floor ceiling
-            "/view?app=" + encodeURIComponent(val[0])
-            + "&view=" + encodeURIComponent(val[1])
-            + "&host=" + encodeURIComponent(val[2])
+            "/view?specs=" + encodeURIComponent(val[0]) + ":" + encodeURIComponent(val[1]) + ":" + encodeURIComponent(val[2])
             + "&start=" + encodeURIComponent(val[3])
             + "&end=" + encodeURIComponent(val[4])
             + "&floor=" + encodeURIComponent(val[5])
