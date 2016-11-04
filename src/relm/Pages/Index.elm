@@ -24,7 +24,7 @@ import Json.Encode as JE
 
 import Api.Apps as Apps
 import Components.App as App
-import Helpers exposing (imap, rdpimap, iamap, class)
+import Helpers exposing (imap, rdpimap, iamap, class, withCrash, first3, third3)
 import RCSS
 import Out
 import Ports
@@ -292,7 +292,7 @@ type Msg
 
 
 updateApps :
-    (App.Model -> ( App.Model, Cmd App.Msg ))
+    (App.Model -> ( App.Model, Cmd App.Msg, List Out.Msg ))
     -> Model
     -> Cmd Msg
     -> ( Model, Cmd Msg )
@@ -304,12 +304,16 @@ updateApps fn model cmd =
                     (Array.map fn apps)
 
                 apps =
-                    Array.map fst result
+                    Array.map first3 result
 
                 cmds =
-                    iamap (\( i, ( a, c ) ) -> Cmd.map (AppMsg i) c) result
+                    iamap (\( i, ( a, c, m ) ) -> Cmd.map (AppMsg i) c) result
             in
-                ( { model | apps = RD.Success apps }, Cmd.batch (cmd :: cmds) )
+                ( { model | apps = RD.Success apps }
+                , Cmd.batch (cmd :: cmds)
+                , List.concat <| List.map third3 <| Array.toList result
+                )
+                    |> handleOutMsgs
 
         _ ->
             ( model, cmd )
@@ -363,16 +367,6 @@ updateWindow m =
         Cmd.none
 
 
-withCrash : Maybe a -> a
-withCrash maybe =
-    case maybe of
-        Just v ->
-            v
-
-        Nothing ->
-            Debug.crash "Impossible"
-
-
 parseInt : String -> Int -> ( Int, Bool )
 parseInt val fac =
     let
@@ -411,6 +405,11 @@ parseTime val =
         parseInt (String.dropRight 1 val) 1000000000
     else
         parseInt val 1000000000
+
+
+handleOutMsgs : ( Model, Cmd Msg, List Out.Msg ) -> ( Model, Cmd Msg )
+handleOutMsgs ( model, cmd, list ) =
+    ( model, cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -529,8 +528,8 @@ update msg model =
 
         AppsFetched apps ->
             let
-                ( models, cmds ) =
-                    List.unzip
+                ( models, cmds, lmsg ) =
+                    Helpers.unzip3
                         (List.map
                             (App.init model.floor
                                 model.floorI
@@ -548,7 +547,9 @@ update msg model =
                     | apps = RD.Success (Array.fromList models)
                   }
                 , Cmd.batch (imap (\( i, cmd ) -> Cmd.map (AppMsg i) cmd) cmds)
+                , List.concat lmsg
                 )
+                    |> handleOutMsgs
 
         AppsFailed err ->
             ( { model | apps = RD.Failure err }, Cmd.none )
@@ -567,26 +568,16 @@ update msg model =
                             Maybe.map (\app -> App.update msg app) app
                     in
                         case res of
-                            Just ( iapp, icmd, iout ) ->
-                                case iout of
-                                    Nothing ->
-                                        ( { model
-                                            | apps =
-                                                RD.Success
-                                                    (Array.set idx iapp apps)
-                                          }
-                                        , Cmd.map (AppMsg idx) icmd
-                                        )
-
-                                    Just (Out.ShowJson j) ->
-                                        ( { model
-                                            | apps =
-                                                RD.Success
-                                                    (Array.set idx iapp apps)
-                                            , json = Just j
-                                          }
-                                        , Cmd.map (AppMsg idx) icmd
-                                        )
+                            Just ( iapp, icmd, lout ) ->
+                                ( { model
+                                    | apps =
+                                        RD.Success
+                                            (Array.set idx iapp apps)
+                                  }
+                                , Cmd.map (AppMsg idx) icmd
+                                , lout
+                                )
+                                    |> handleOutMsgs
 
                             Nothing ->
                                 Debug.crash "impossible"

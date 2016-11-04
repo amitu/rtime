@@ -71,7 +71,7 @@ init :
     -> Date
     -> Date
     -> Apps.View
-    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg, Maybe Out.Msg )
 init floor floorI ceiling ceilingI global app store start end view =
     { data = RD.NotAsked
     , app = app
@@ -103,19 +103,20 @@ readCheckedKey store model =
             model
 
 
-readGraphKey : Dict String String -> Model -> ( Model, Cmd Msg )
+readGraphKey : Dict String String -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 readGraphKey store model =
     case Dict.get (key2 model.app model.name) store of
         Just v ->
             if v == "open" then
                 ( { model | graph = True }
+                , Cmd.none
                 , fetchGraph model
                 )
             else
-                ( { model | graph = False }, Cmd.none )
+                ( { model | graph = False }, Cmd.none, Nothing )
 
         Nothing ->
-            ( model, Cmd.none )
+            ( model, Cmd.none, Nothing )
 
 
 key1 : String -> String -> String
@@ -137,7 +138,7 @@ type Msg
     | JsonFailed Http.Error
 
 
-updateLevels : Int -> String -> Int -> String -> Bool -> Model -> ( Model, Cmd Msg )
+updateLevels : Int -> String -> Int -> String -> Bool -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 updateLevels floor floorI ceiling ceilingI global model =
     let
         model =
@@ -149,10 +150,10 @@ updateLevels floor floorI ceiling ceilingI global model =
                 , globalLevels = global
             }
     in
-        ( model, fetchGraph model )
+        ( model, Cmd.none, fetchGraph model )
 
 
-updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg )
+updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 updateWindow start end model =
     let
         model =
@@ -161,7 +162,7 @@ updateWindow start end model =
                 , end = end
             }
     in
-        ( model, fetchGraph model )
+        ( model, Cmd.none, fetchGraph model )
 
 
 floor : Model -> Int
@@ -206,16 +207,20 @@ ceilingI model =
                 "unknown"
 
 
-fetchGraph : Model -> Cmd Msg
+fetchGraph : Model -> Maybe Out.Msg
 fetchGraph model =
-    Ports.getGraph
-        model.app
-        model.name
-        ""
-        model.start
-        model.end
-        (floor model)
-        (ceiling model)
+    Just (Out.LoadURL model.app model.name)
+
+
+
+--        Ports.getGraph
+--        model.app
+--        model.name
+--        ""
+--        model.start
+--        model.end
+--        (floor model)
+--        (ceiling model)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
@@ -261,11 +266,8 @@ update msg model =
                 case model.data of
                     RD.NotAsked ->
                         ( { model | graph = True, data = RD.Loading }
-                        , Cmd.batch
-                            [ fetchGraph model
-                            , Ports.set_key ( key2 model.app model.name, "open" )
-                            ]
-                        , Nothing
+                        , Ports.set_key ( key2 model.app model.name, "open" )
+                        , fetchGraph model
                         )
 
                     _ ->

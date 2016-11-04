@@ -132,5 +132,53 @@ twoimap0 fn lista listb count =
             twoimap0 fn (e2 :: tail) (fn ( count, e1, e2 ) :: listb) (count + 1)
 
 
+withCrash : Maybe a -> a
+withCrash maybe =
+    case maybe of
+        Just v ->
+            v
+
+        Nothing ->
+            Debug.crash "Impossible"
+
+
+isJust : Maybe a -> Bool
+isJust m =
+    case m of
+        Just _ ->
+            True
+
+        Nothing ->
+            False
+
+
+maybe2list : List (Maybe a) -> List a
+maybe2list list =
+    List.map withCrash <| List.filter isJust list
+
+
+first3 : ( a, b, c ) -> a
+first3 ( a, _, _ ) =
+    a
+
+
+second3 : ( a, b, c ) -> b
+second3 ( _, b, _ ) =
+    b
+
+
+third3 : ( a, b, c ) -> c
+third3 ( _, _, c ) =
+    c
+
+
+unzip3 : List ( a, b, c ) -> ( List a, List b, List c )
+unzip3 list =
+    ( List.map first3 list
+    , List.map second3 list
+    , List.map third3 list
+    )
+
+
 { id, class, classList } =
     Html.CssHelpers.withNamespace ""

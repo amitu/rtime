@@ -24,7 +24,17 @@ import Dict exposing (Dict)
 import Api.Apps as Apps
 import Components.View as View
 import Out
-import Helpers exposing (imap, iamap, class)
+import Helpers
+    exposing
+        ( imap
+        , iamap
+        , class
+        , maybe2list
+        , third3
+        , withCrash
+        , unzip3
+        , first3
+        )
 import RCSS
 import Ports
 
@@ -53,11 +63,11 @@ init :
     -> Date
     -> Date
     -> Apps.App
-    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg, List Out.Msg )
 init floor floorI ceiling ceilingI global store start end app =
     let
-        ( models, cmds ) =
-            List.unzip
+        ( models, cmds, msgs ) =
+            unzip3
                 (List.map
                     (View.init
                         floor
@@ -80,6 +90,7 @@ init floor floorI ceiling ceilingI global store start end app =
           }
             |> readState store
         , Cmd.batch (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
+        , maybe2list msgs
         )
 
 
@@ -117,16 +128,17 @@ key n =
 
 
 updateViews :
-    (View.Model -> ( View.Model, Cmd View.Msg ))
+    (View.Model -> ( View.Model, Cmd View.Msg, Maybe Out.Msg ))
     -> Model
-    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg, List Out.Msg )
 updateViews fn model =
     let
         result =
-            (Array.map fn model.views)
+            List.map fn <| Array.toList model.views
     in
-        ( { model | views = Array.map fst result }
-        , Cmd.batch (iamap (\( i, ( a, c ) ) -> Cmd.map (ViewMsg i) c) result)
+        ( { model | views = Array.fromList <| List.map first3 result }
+        , Cmd.batch (imap (\( i, ( a, c, m ) ) -> Cmd.map (ViewMsg i) c) result)
+        , maybe2list <| List.map third3 result
         )
 
 
@@ -137,7 +149,7 @@ updateLevels :
     -> String
     -> Bool
     -> Model
-    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg, List Out.Msg )
 updateLevels floor floorI ceiling ceilingI global model =
     updateViews (View.updateLevels floor floorI ceiling ceilingI global) model
 
@@ -146,12 +158,12 @@ updateWindow :
     Date
     -> Date
     -> Model
-    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg, List Out.Msg )
 updateWindow start end model =
     updateViews (View.updateWindow start end) model
 
 
-update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, List Out.Msg )
 update msg model =
     case msg of
         CheckboxToggle ->
@@ -162,18 +174,18 @@ update msg model =
                 if checkbox then
                     ( { model | checkbox = checkbox, state = Checked }
                     , Ports.set_key ( key model.name, "Checked" )
-                    , Nothing
+                    , []
                     )
                 else
                     ( { model | checkbox = checkbox, state = Closed }
                     , Ports.set_key ( key model.name, "Closed" )
-                    , Nothing
+                    , []
                     )
 
         ShowAll ->
             ( { model | state = Open, checkbox = False }
             , Ports.set_key ( key model.name, "Open" )
-            , Nothing
+            , []
             )
 
         AppToggle ->
@@ -181,19 +193,19 @@ update msg model =
                 Open ->
                     ( { model | state = Closed, checkbox = False }
                     , Ports.set_key ( key model.name, "Closed" )
-                    , Nothing
+                    , []
                     )
 
                 Closed ->
                     ( { model | state = Checked, checkbox = True }
                     , Ports.set_key ( key model.name, "Checked" )
-                    , Nothing
+                    , []
                     )
 
                 Checked ->
                     ( { model | state = Open, checkbox = False }
                     , Ports.set_key ( key model.name, "Open" )
-                    , Nothing
+                    , []
                     )
 
         ViewMsg idx msg ->
@@ -210,7 +222,7 @@ update msg model =
                             | views = Array.set idx iview model.views
                           }
                         , Cmd.map (ViewMsg idx) icmd
-                        , omsg
+                        , [ withCrash omsg ]
                         )
 
                     Nothing ->
