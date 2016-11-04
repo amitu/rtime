@@ -41,7 +41,7 @@ func HandlePacket(data []byte, p *packet) {
 		return
 	}
 
-	Write(data, p)
+	Write(uncompressed, p)
 }
 
 func UDPListen(addr string) {
