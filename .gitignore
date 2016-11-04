@@ -51,3 +51,4 @@ htmlcov
 node_modules
 build
 dist
+vendor/src/github.com/golang/snappy/

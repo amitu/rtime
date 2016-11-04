@@ -6,6 +6,7 @@ import (
 
 	"encoding/json"
 
+	"github.com/golang/snappy"
 	"github.com/juju/errors"
 )
 
@@ -22,7 +23,16 @@ func HandlePacket(data []byte, p *packet) {
 	p.Name = ""
 	p.OTime = 0
 
-	err := json.Unmarshal(data, p)
+	uncompressed, err := snappy.Decode(data, data)
+	if err != nil {
+		LOGGER.Warn(
+			"snappy_decode_failed", "err", errors.ErrorStack(err),
+			"packet", string(data),
+		)
+		return
+	}
+
+	err = json.Unmarshal(uncompressed, p)
 	if err != nil {
 		LOGGER.Warn(
 			"udp_packet_parse_failed", "err", errors.ErrorStack(err),
@@ -43,7 +53,7 @@ func UDPListen(addr string) {
 		return
 	}
 
-	obytes := make([]byte, 64*1024)
+	obytes := make([]byte, 64*1024*10)
 	start := time.Now()
 	var bcount, count int64
 	opacket := &packet{}

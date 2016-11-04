@@ -6,6 +6,7 @@ import json
 import os
 import socket
 import sys
+import snappy
 
 SERVER = "127.0.0.1"
 PORT = 6543
@@ -35,7 +36,7 @@ def ping():
         otime=sys.argv[2]
     )
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(msg.json(), (SERVER, PORT))
+    sock.sendto(snappy.compress(msg.json()), (SERVER, PORT))
 
 
 if __name__ == "__main__":
