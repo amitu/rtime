@@ -222,7 +222,13 @@ update msg model =
                             | views = Array.set idx iview model.views
                           }
                         , Cmd.map (ViewMsg idx) icmd
-                        , [ withCrash omsg ]
+                        , (case omsg of
+                            Nothing ->
+                                []
+
+                            Just a ->
+                                [ a ]
+                          )
                         )
 
                     Nothing ->

@@ -212,17 +212,6 @@ fetchGraph model =
     Just (Out.LoadURL model.app model.name)
 
 
-
---        Ports.getGraph
---        model.app
---        model.name
---        ""
---        model.start
---        model.end
---        (floor model)
---        (ceiling model)
-
-
 update : Msg -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
 update msg model =
     case msg of

@@ -407,9 +407,62 @@ parseTime val =
         parseInt val 1000000000
 
 
+extractGraphFromOutMsgs : List Out.Msg -> List ( String, String )
+extractGraphFromOutMsgs list =
+    case list of
+        [] ->
+            []
+
+        first :: rest ->
+            case first of
+                Out.LoadURL app view ->
+                    ( app, view ) :: extractGraphFromOutMsgs rest
+
+                _ ->
+                    extractGraphFromOutMsgs rest
+
+
+extractJSONFromOutMsgs : List Out.Msg -> Maybe String
+extractJSONFromOutMsgs list =
+    case list of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            case first of
+                Out.ShowJson json ->
+                    Just json
+
+                _ ->
+                    extractJSONFromOutMsgs rest
+
+
 handleOutMsgs : ( Model, Cmd Msg, List Out.Msg ) -> ( Model, Cmd Msg )
 handleOutMsgs ( model, cmd, list ) =
-    ( model, cmd )
+    let
+        graphs =
+            extractGraphFromOutMsgs list
+
+        json =
+            extractJSONFromOutMsgs list
+    in
+        ( { model | json = json }
+        , Cmd.batch <|
+            cmd
+                :: (List.map
+                        (\( app, view ) ->
+                            Ports.getGraph
+                                app
+                                view
+                                ""
+                                (start model)
+                                (end model)
+                                model.floor
+                                model.ceiling
+                        )
+                        graphs
+                   )
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
