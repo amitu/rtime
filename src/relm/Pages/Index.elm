@@ -495,22 +495,25 @@ handleOutMsgs ( model, cmd, list ) =
 
         json =
             extractJSONFromOutMsgs list
+
+        graphCmd =
+            if List.length graphs == 0 then
+                Cmd.none
+            else
+                Ports.getGraphs
+                    (List.map
+                        (\( app, view ) ->
+                            ( app, view, "" )
+                        )
+                        graphs
+                    )
+                    (start model)
+                    (end model)
+                    model.floor
+                    model.ceiling
     in
         ( { model | json = json }
-        , Cmd.batch <|
-            [ cmd
-            , Ports.getGraphs
-                (List.map
-                    (\( app, view ) ->
-                        ( app, view, "" )
-                    )
-                    graphs
-                )
-                (start model)
-                (end model)
-                model.floor
-                model.ceiling
-            ]
+        , Cmd.batch [ cmd, graphCmd ]
         )
 
 

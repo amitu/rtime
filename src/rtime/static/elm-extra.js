@@ -113,7 +113,7 @@ app.ports.get_graphs.subscribe(function(val) {
         var result = []
 
         for (var s = 0; s < val[0].length; s++) {
-            var offset = s * 1064 // bytes per graph
+            var offset = s * 1060 // bytes per graph
             var id = ""
             var list = []
             var ceiling = 0
@@ -123,11 +123,11 @@ app.ports.get_graphs.subscribe(function(val) {
                 id += String.fromCharCode(array[i])
             }
 
-            for (var i = offset + 32; i < array.length && i < offset + 40; i++) {
-                ceiling += array[i] * Math.pow(256 * 256, i - 32)
+            for (var i = offset + 32; i < array.length && i < offset + 36; i++) {
+                ceiling += array[i] * Math.pow(256 * 256, i - offset - 32)
             }
 
-            for (var i = offset + 40; i < array.length && i < offset + 1064; i++) {
+            for (var i = offset + 36; i < array.length && i < offset + 1060; i++) {
                 var n = array[i]
                 if (n % 1024)
                     list.push([n % 1024,  Math.floor(n / 1024)])
