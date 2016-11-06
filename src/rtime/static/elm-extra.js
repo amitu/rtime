@@ -82,7 +82,13 @@ function join(name, vals, sep) {
 }
 
 function error(specs, err) {
-    app.ports.graphsData.send([])
+    // spec, err, id, (floor, ceiling), List Point
+    var result = []
+    for (var s = 0; s < specs.length; s++) {
+        var spec = specs[s][0] + ":" + specs[s][1] + ":"
+        result.push([spec, err, "", [0, 0], []])
+    }
+    app.ports.graphsData.send(result)
 }
 
 app.ports.get_graphs.subscribe(function(val) {
@@ -100,7 +106,14 @@ app.ports.get_graphs.subscribe(function(val) {
     )
     oReq.responseType = "arraybuffer"
 
+    oReq.onerror = function(e) {
+        return error(val[0], "server error")
+    }
+
     oReq.onload = function (oEvent) {
+        if (oReq.readyState == 0) {
+            return error(val[0], "network error")
+        }
         if (oReq.status != 200) {
             return error(val[0], "server error")
         }
