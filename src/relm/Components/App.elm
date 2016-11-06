@@ -5,7 +5,6 @@ module Components.App
         , init
         , update
         , view
-        , subscriptions
         , updateLevels
         , updateWindow
         )
@@ -299,13 +298,4 @@ view model =
                                         [ text "" ]
                                )
                )
-        )
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        (iamap
-            (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v))
-            model.views
         )

@@ -289,6 +289,8 @@ type Msg
     | SetStart String
     | SetEnd String
     | CommitWindow
+      -- List (spec, err, id, (floor, ceiling), List Point)
+    | GraphDataFetched (List ( String, String, String, ( Int, Int ), List ( Int, Int ) ))
 
 
 updateApps :
@@ -448,20 +450,19 @@ handleOutMsgs ( model, cmd, list ) =
     in
         ( { model | json = json }
         , Cmd.batch <|
-            cmd
-                :: (List.map
-                        (\( app, view ) ->
-                            Ports.getGraph
-                                app
-                                view
-                                ""
-                                (start model)
-                                (end model)
-                                model.floor
-                                model.ceiling
-                        )
-                        graphs
-                   )
+            [ cmd
+            , Ports.getGraphs
+                (List.map
+                    (\( app, view ) ->
+                        ( app, view, "" )
+                    )
+                    graphs
+                )
+                (start model)
+                (end model)
+                model.floor
+                model.ceiling
+            ]
         )
 
 
@@ -609,6 +610,9 @@ update msg model =
 
         HideJson ->
             ( { model | json = Nothing }, Cmd.none )
+
+        GraphDataFetched list ->
+            ( model, Cmd.none )
 
         AppMsg idx msg ->
             case model.apps of
@@ -857,22 +861,10 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        ((if model.timer then
-            [ (Time.every Time.second Tick) ]
-          else
-            []
-         )
-            ++ (case model.apps of
-                    RD.Success apps ->
-                        (iamap
-                            (\( i, a ) ->
-                                Sub.map (AppMsg i) (App.subscriptions a)
-                            )
-                            apps
-                        )
-
-                    _ ->
-                        []
-               )
+    Sub.batch <|
+        (if model.timer then
+            Time.every Time.second Tick
+         else
+            Sub.none
         )
+            :: [ Ports.graphsData GraphDataFetched ]

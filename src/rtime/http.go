@@ -195,7 +195,7 @@ func jsonAPI(w http.ResponseWriter, r *http.Request) {
 	respond(w, &JsonResp{TS: rd.ids[idx], JSON: string(data)})
 }
 
-func viewAPI(w http.ResponseWriter, r *http.Request) {
+func graphAPI(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	specs, ok := r.Form["specs"]
@@ -286,7 +286,7 @@ func ListenAndServe(listen string) {
 	http.Handle("/static/", staticServer)
 	http.HandleFunc("/apps", appsAPI)
 	http.HandleFunc("/views", viewsAPI)
-	http.HandleFunc("/view", viewAPI)
+	http.HandleFunc("/graph", graphAPI)
 	http.HandleFunc("/json", jsonAPI)
 	http.HandleFunc("/", elmPage)
 
