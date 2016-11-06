@@ -5,7 +5,7 @@ module Components.View
         , init
         , update
         , view
-        , subscriptions
+        , updateGraph
         , updateLevels
         , updateWindow
         )
@@ -132,7 +132,6 @@ key2 a n =
 type Msg
     = ToggleGraph
     | ToggleCheck
-    | ViewDataFetched ( String, ( String, String, String ), ( Int, Int ), List ( Int, Int ) )
     | LineClick Int
     | GotJson Apps.JsonResp
     | JsonFailed Http.Error
@@ -163,6 +162,24 @@ updateWindow start end model =
             }
     in
         ( model, Cmd.none, fetchGraph model )
+
+
+updateGraph : Model -> ( String, String, ( Int, Int ), List ( Int, Int ) ) -> Model
+updateGraph model ( err, id, ( floor, ceiling ), list ) =
+    case err of
+        "" ->
+            { model
+                | data =
+                    RD.Success
+                        { id = id
+                        , timings = list
+                        , ceiling = ceiling
+                        , floor = floor
+                        }
+            }
+
+        msg ->
+            { model | data = RD.Failure (Http.UnexpectedPayload msg) }
 
 
 floor : Model -> Int
@@ -264,37 +281,6 @@ update msg model =
                         , Ports.set_key ( key2 model.app model.name, "open" )
                         , Nothing
                         )
-
-        ViewDataFetched ( err, ( id, app, view ), ( floor, ceiling ), list ) ->
-            if ( app, view ) == ( model.app, model.name ) then
-                case err of
-                    "" ->
-                        ( { model
-                            | data =
-                                RD.Success
-                                    { id = id
-                                    , timings = list
-                                    , ceiling = ceiling
-                                    , floor = floor
-                                    }
-                          }
-                        , Cmd.none
-                        , Nothing
-                        )
-
-                    msg ->
-                        ( { model | data = RD.Failure (Http.UnexpectedPayload msg) }
-                        , Cmd.none
-                        , Nothing
-                        )
-            else
-                -- no es para mi
-                ( model, Cmd.none, Nothing )
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Ports.graphData ViewDataFetched
 
 
 maker : (String -> S.Attribute Msg) -> number -> S.Attribute Msg

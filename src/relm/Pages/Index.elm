@@ -12,6 +12,7 @@ import Date exposing (Date)
 import Dict exposing (Dict)
 import Date.Extra.Duration as Duration exposing (Duration, zeroDelta)
 import String
+import String.Extra as String
 import Task
 import Basics.Extra exposing (never)
 import Json.Decode as JD exposing ((:=))
@@ -289,6 +290,55 @@ type Msg
     | SetStart String
     | SetEnd String
     | CommitWindow
+      -- List (spec, err, id, (floor, ceiling), List Point)
+    | GraphDataFetched (List ( String, String, String, ( Int, Int ), List ( Int, Int ) ))
+
+
+graphToApp :
+    Int
+    -> ( String, String, String, ( Int, Int ), List ( Int, Int ) )
+    -> Model
+    -> Model
+graphToApp idx ( spec, err, id, ( floor, ceiling ), points ) model =
+    let
+        name =
+            String.leftOf ":" spec
+
+        rest =
+            String.rightOf ":" spec
+    in
+        case model.apps of
+            RD.Success apps ->
+                case Array.get idx apps of
+                    Just app ->
+                        if app.name == name then
+                            { model
+                                | apps =
+                                    RD.Success <|
+                                        Array.set idx
+                                            (App.graphToViews
+                                                0
+                                                ( rest
+                                                , err
+                                                , id
+                                                , ( floor, ceiling )
+                                                , points
+                                                )
+                                                app
+                                            )
+                                            apps
+                            }
+                        else
+                            graphToApp
+                                (idx + 1)
+                                ( spec, err, id, ( floor, ceiling ), points )
+                                model
+
+                    Nothing ->
+                        model
+
+            _ ->
+                model
 
 
 updateApps :
@@ -445,23 +495,25 @@ handleOutMsgs ( model, cmd, list ) =
 
         json =
             extractJSONFromOutMsgs list
-    in
-        ( { model | json = json }
-        , Cmd.batch <|
-            cmd
-                :: (List.map
+
+        graphCmd =
+            if List.length graphs == 0 then
+                Cmd.none
+            else
+                Ports.getGraphs
+                    (List.map
                         (\( app, view ) ->
-                            Ports.getGraph
-                                app
-                                view
-                                ""
-                                (start model)
-                                (end model)
-                                model.floor
-                                model.ceiling
+                            ( app, view, "" )
                         )
                         graphs
-                   )
+                    )
+                    (start model)
+                    (end model)
+                    model.floor
+                    model.ceiling
+    in
+        ( { model | json = json }
+        , Cmd.batch [ cmd, graphCmd ]
         )
 
 
@@ -518,7 +570,7 @@ update msg model =
             ( { model | endI = str }, Cmd.none )
 
         CommitWindow ->
-            ( Debug.log "CommitWindow" { model | windowSelectorOpen = False }, Cmd.none )
+            ( { model | windowSelectorOpen = False }, Cmd.none )
 
         OnFloor val ->
             let
@@ -609,6 +661,9 @@ update msg model =
 
         HideJson ->
             ( { model | json = Nothing }, Cmd.none )
+
+        GraphDataFetched list ->
+            ( List.foldr (graphToApp 0) model list, Cmd.none )
 
         AppMsg idx msg ->
             case model.apps of
@@ -857,22 +912,10 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        ((if model.timer then
-            [ (Time.every Time.second Tick) ]
-          else
-            []
-         )
-            ++ (case model.apps of
-                    RD.Success apps ->
-                        (iamap
-                            (\( i, a ) ->
-                                Sub.map (AppMsg i) (App.subscriptions a)
-                            )
-                            apps
-                        )
-
-                    _ ->
-                        []
-               )
+    Sub.batch <|
+        (if model.timer then
+            Time.every Time.second Tick
+         else
+            Sub.none
         )
+            :: [ Ports.graphsData GraphDataFetched ]

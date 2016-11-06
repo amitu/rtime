@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"strings"
 	"sync"
 	"time"
 
@@ -194,22 +195,15 @@ func jsonAPI(w http.ResponseWriter, r *http.Request) {
 	respond(w, &JsonResp{TS: rd.ids[idx], JSON: string(data)})
 }
 
-func viewAPI(w http.ResponseWriter, r *http.Request) {
-	app := r.FormValue("app")
-	if app == "" {
-		reject(w, "app is required")
-		LOGGER.Warn("app_missing")
+func graphAPI(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	specs, ok := r.Form["specs"]
+	if !ok || len(specs) == 0 {
+		reject(w, "specs is required")
+		LOGGER.Warn("specs_missing", "ok", ok, "specs", specs)
 		return
 	}
-
-	view := r.FormValue("view")
-	if view == "" {
-		reject(w, "view is required")
-		LOGGER.Warn("view_missing")
-		return
-	}
-
-	host := r.FormValue("host")
 
 	floors := r.FormValue("floor")
 	floor := uint64(0)
@@ -236,32 +230,45 @@ func viewAPI(w http.ResponseWriter, r *http.Request) {
 	LOGGER.Debug("ceiling", "ceilings", ceilings, "ceiling", ceiling)
 
 	start := r.FormValue("start")
-	if view == "" {
+	if start == "" {
 		reject(w, "start is required")
 		return
 	}
 
 	end := r.FormValue("end")
-	if view == "" {
+	if end == "" {
 		reject(w, "end is required")
 		return
 	}
 
-	rd, err := GetViewData(app, view, host, start, end, floor, ceiling)
-	if err != nil {
-		LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
-		reject(w, errors.ErrorStack(err))
-		return
+	for _, spec := range specs {
+		parts := strings.Split(spec, ":")
+		if len(parts) != 3 {
+			reject(w, "bad spec")
+			LOGGER.Error("bad_spec", "spec", spec, "specs", specs)
+			return
+		}
+
+		app := parts[0]
+		view := parts[1]
+		host := parts[2]
+
+		rd, err := GetViewData(app, view, host, start, end, floor, ceiling)
+		if err != nil {
+			LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
+			reject(w, errors.ErrorStack(err))
+			return
+		}
+
+		err = rd.writeTo(w)
+		if err != nil {
+			LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
+			reject(w, errors.ErrorStack(err))
+			return
+		}
+		cache.Add(rd)
 	}
 
-	err = rd.writeTo(w)
-	if err != nil {
-		LOGGER.Error("view_data_error", "err", errors.ErrorStack(err))
-		reject(w, errors.ErrorStack(err))
-		return
-	}
-
-	cache.Add(rd)
 }
 
 func cleaner() {
@@ -279,7 +286,7 @@ func ListenAndServe(listen string) {
 	http.Handle("/static/", staticServer)
 	http.HandleFunc("/apps", appsAPI)
 	http.HandleFunc("/views", viewsAPI)
-	http.HandleFunc("/view", viewAPI)
+	http.HandleFunc("/graph", graphAPI)
 	http.HandleFunc("/json", jsonAPI)
 	http.HandleFunc("/", elmPage)
 

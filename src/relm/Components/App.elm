@@ -5,9 +5,9 @@ module Components.App
         , init
         , update
         , view
-        , subscriptions
         , updateLevels
         , updateWindow
+        , graphToViews
         )
 
 import Html exposing (Html, text, ul, li, a, h2, div, input, span)
@@ -17,6 +17,7 @@ import Array exposing (Array)
 import Html.App
 import Date exposing (Date)
 import Dict exposing (Dict)
+import String.Extra as String
 
 
 -- ours
@@ -140,6 +141,38 @@ updateViews fn model =
         , Cmd.batch (imap (\( i, ( a, c, m ) ) -> Cmd.map (ViewMsg i) c) result)
         , maybe2list <| List.map third3 result
         )
+
+
+graphToViews :
+    Int
+    -> ( String, String, String, ( Int, Int ), List ( Int, Int ) )
+    -> Model
+    -> Model
+graphToViews idx ( spec, err, id, ( floor, ceiling ), points ) model =
+    case Array.get idx model.views of
+        Just view ->
+            if view.name == (String.leftOf ":" spec) then
+                { model
+                    | views =
+                        Array.set idx
+                            (View.updateGraph
+                                view
+                                ( err
+                                , id
+                                , ( floor, ceiling )
+                                , points
+                                )
+                            )
+                            model.views
+                }
+            else
+                graphToViews
+                    (idx + 1)
+                    ( spec, err, id, ( floor, ceiling ), points )
+                    model
+
+        Nothing ->
+            model
 
 
 updateLevels :
@@ -299,13 +332,4 @@ view model =
                                         [ text "" ]
                                )
                )
-        )
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        (iamap
-            (\( i, v ) -> Sub.map (ViewMsg i) (View.subscriptions v))
-            model.views
         )
