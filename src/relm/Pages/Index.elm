@@ -633,8 +633,8 @@ update msg model =
 
         AppsFetched apps ->
             let
-                ( models, cmds, lmsg ) =
-                    Helpers.unzip3
+                ( models, lmsg ) =
+                    List.unzip
                         (List.map
                             (App.init model.floor
                                 model.floorI
@@ -651,7 +651,7 @@ update msg model =
                 ( { model
                     | apps = RD.Success (Array.fromList models)
                   }
-                , Cmd.batch (imap (\( i, cmd ) -> Cmd.map (AppMsg i) cmd) cmds)
+                , Cmd.none
                 , List.concat lmsg
                 )
                     |> handleOutMsgs

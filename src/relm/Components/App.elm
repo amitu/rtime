@@ -35,15 +35,10 @@ import Helpers
         , withCrash
         , unzip3
         , first3
+        , VisibilityState(..)
         )
 import RCSS
 import Ports
-
-
-type VisibilityState
-    = Open
-    | Closed
-    | Checked
 
 
 type alias Model =
@@ -64,11 +59,33 @@ init :
     -> Date
     -> Date
     -> Apps.App
-    -> ( Model, Cmd Msg, List Out.Msg )
+    -> ( Model, List Out.Msg )
 init floor floorI ceiling ceilingI global store start end app =
+    { name = app.name
+    , views = Array.fromList []
+    , state = Open
+    , checkbox = False
+    }
+        |> readState store
+        |> initViews floor floorI ceiling ceilingI global store start end app.views
+
+
+initViews :
+    Int
+    -> String
+    -> Int
+    -> String
+    -> Bool
+    -> Dict String String
+    -> Date
+    -> Date
+    -> List Apps.View
+    -> Model
+    -> ( Model, List Out.Msg )
+initViews floor floorI ceiling ceilingI global store start end views model =
     let
-        ( models, cmds, msgs ) =
-            unzip3
+        ( models, msgs ) =
+            List.unzip
                 (List.map
                     (View.init
                         floor
@@ -76,21 +93,16 @@ init floor floorI ceiling ceilingI global store start end app =
                         ceiling
                         ceilingI
                         global
-                        app.name
+                        model.name
                         store
                         start
                         end
+                        model.state
                     )
-                    app.views
+                    views
                 )
     in
-        ( { name = app.name
-          , views = Array.fromList models
-          , state = Open
-          , checkbox = False
-          }
-            |> readState store
-        , Cmd.batch (imap (\( i, cmd ) -> Cmd.map (ViewMsg i) cmd) cmds)
+        ( { model | views = Array.fromList models }
         , maybe2list msgs
         )
 

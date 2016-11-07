@@ -12,6 +12,12 @@ import Html.CssHelpers
 import RemoteData as RD
 
 
+type VisibilityState
+    = Open
+    | Closed
+    | Checked
+
+
 range : Int -> Int -> Int -> List Int
 range start stop increment =
     populate [] start stop increment

@@ -29,7 +29,7 @@ import Dict exposing (Dict)
 import Api.Apps as Apps
 import Ports
 import Out
-import Helpers exposing (class, twoimap)
+import Helpers exposing (class, twoimap, VisibilityState(..))
 import RCSS
 
 
@@ -70,9 +70,10 @@ init :
     -> Dict String String
     -> Date
     -> Date
+    -> VisibilityState
     -> Apps.View
-    -> ( Model, Cmd Msg, Maybe Out.Msg )
-init floor floorI ceiling ceilingI global app store start end view =
+    -> ( Model, Maybe Out.Msg )
+init floor floorI ceiling ceilingI global app store start end visibility view =
     { data = RD.NotAsked
     , app = app
     , name = view.name
@@ -90,7 +91,7 @@ init floor floorI ceiling ceilingI global app store start end view =
     , end = end
     }
         |> readCheckedKey store
-        |> readGraphKey store
+        |> readGraphKey store visibility
 
 
 readCheckedKey : Dict String String -> Model -> Model
@@ -103,20 +104,36 @@ readCheckedKey store model =
             model
 
 
-readGraphKey : Dict String String -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
-readGraphKey store model =
+readGraphKey :
+    Dict String String
+    -> VisibilityState
+    -> Model
+    -> ( Model, Maybe Out.Msg )
+readGraphKey store visibility model =
     case Dict.get (key2 model.app model.name) store of
         Just v ->
             if v == "open" then
-                ( { model | graph = True }
-                , Cmd.none
-                , fetchGraph model
-                )
+                case visibility of
+                    Open ->
+                        ( { model | graph = True, data = RD.Loading }
+                        , fetchGraph model
+                        )
+
+                    Checked ->
+                        if model.checked then
+                            ( { model | graph = True, data = RD.Loading }
+                            , fetchGraph model
+                            )
+                        else
+                            ( { model | graph = True }, Nothing )
+
+                    Closed ->
+                        ( { model | graph = True }, Nothing )
             else
-                ( { model | graph = False }, Cmd.none, Nothing )
+                ( { model | graph = False }, Nothing )
 
         Nothing ->
-            ( model, Cmd.none, Nothing )
+            ( model, Nothing )
 
 
 key1 : String -> String -> String
