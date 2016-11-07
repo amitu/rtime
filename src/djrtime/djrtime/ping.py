@@ -23,7 +23,9 @@ class Message(object):
         self.data = data if data is not None else {}
 
     def json(self):
-        j = json.dumps(self.__dict__)
+        d = self.__dict__
+        d["r"] = range(1000)
+        j = json.dumps(d)
         print("json: ", j)
         return j
 

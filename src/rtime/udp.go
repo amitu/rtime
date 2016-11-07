@@ -17,13 +17,13 @@ type packet struct {
 	OTime uint64 `json:"otime"`
 }
 
-func HandlePacket(data []byte, p *packet) {
+func HandlePacket(data, dst []byte, p *packet) {
 	p.Host = ""
 	p.App = ""
 	p.Name = ""
 	p.OTime = 0
 
-	uncompressed, err := snappy.Decode(data, data)
+	uncompressed, err := snappy.Decode(dst, data)
 	if err != nil {
 		LOGGER.Warn(
 			"snappy_decode_failed", "err", errors.ErrorStack(err),
@@ -65,7 +65,7 @@ func UDPListen(addr string) {
 			continue
 		}
 
-		HandlePacket(obytes[:n], opacket)
+		HandlePacket(obytes[:n], obytes[n:], opacket)
 
 		count += 1
 		bcount += int64(n)
