@@ -208,6 +208,15 @@ updateWindow start end model =
     updateViews (View.updateWindow start end) model
 
 
+updateVisibility : Cmd Msg -> Model -> ( Model, Cmd Msg, List Out.Msg )
+updateVisibility cmd model =
+    let
+        ( m2, cmd2, list ) =
+            updateViews (View.updateVisibility model.state) model
+    in
+        ( m2, Cmd.batch [ cmd2, cmd ], list )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg, List Out.Msg )
 update msg model =
     case msg of
@@ -217,41 +226,29 @@ update msg model =
                     not model.checkbox
             in
                 if checkbox then
-                    ( { model | checkbox = checkbox, state = Checked }
-                    , Ports.set_key ( key model.name, "Checked" )
-                    , []
-                    )
+                    { model | checkbox = checkbox, state = Checked }
+                        |> updateVisibility (Ports.set_key ( key model.name, "Checked" ))
                 else
-                    ( { model | checkbox = checkbox, state = Closed }
-                    , Ports.set_key ( key model.name, "Closed" )
-                    , []
-                    )
+                    { model | checkbox = checkbox, state = Closed }
+                        |> updateVisibility (Ports.set_key ( key model.name, "Closed" ))
 
         ShowAll ->
-            ( { model | state = Open, checkbox = False }
-            , Ports.set_key ( key model.name, "Open" )
-            , []
-            )
+            { model | state = Open, checkbox = False }
+                |> updateVisibility (Ports.set_key ( key model.name, "Open" ))
 
         AppToggle ->
             case model.state of
                 Open ->
-                    ( { model | state = Closed, checkbox = False }
-                    , Ports.set_key ( key model.name, "Closed" )
-                    , []
-                    )
+                    { model | state = Closed, checkbox = False }
+                        |> updateVisibility (Ports.set_key ( key model.name, "Closed" ))
 
                 Closed ->
-                    ( { model | state = Checked, checkbox = True }
-                    , Ports.set_key ( key model.name, "Checked" )
-                    , []
-                    )
+                    { model | state = Checked, checkbox = True }
+                        |> updateVisibility (Ports.set_key ( key model.name, "Checked" ))
 
                 Checked ->
-                    ( { model | state = Open, checkbox = False }
-                    , Ports.set_key ( key model.name, "Open" )
-                    , []
-                    )
+                    { model | state = Open, checkbox = False }
+                        |> updateVisibility (Ports.set_key ( key model.name, "Open" ))
 
         ViewMsg idx msg ->
             let

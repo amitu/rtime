@@ -8,6 +8,7 @@ module Components.View
         , updateGraph
         , updateLevels
         , updateWindow
+        , updateVisibility
         )
 
 -- elm.core
@@ -167,6 +168,14 @@ updateLevels floor floorI ceiling ceilingI global model =
             }
     in
         ( model, Cmd.none, fetchGraph model )
+
+
+updateVisibility : VisibilityState -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
+updateVisibility visibility model =
+    if visibility == Open && model.graph && model.data == RD.NotAsked then
+        ( { model | data = RD.Loading }, Cmd.none, fetchGraph model )
+    else
+        ( model, Cmd.none, Nothing )
 
 
 updateWindow : Date -> Date -> Model -> ( Model, Cmd Msg, Maybe Out.Msg )
