@@ -85,7 +85,7 @@ function error(specs, err) {
     // spec, err, id, (floor, ceiling), List Point
     var result = []
     for (var s = 0; s < specs.length; s++) {
-        var spec = specs[s][0] + ":" + specs[s][1] + ":"
+        var spec = specs[s][0] + "|" + specs[s][1] + "|"
         result.push([spec, err, "", [0, 0], []])
     }
     app.ports.graphsData.send(result)
@@ -96,7 +96,7 @@ app.ports.get_graphs.subscribe(function(val) {
     oReq.open(
         "GET", (
             // [spec] start end floor ceiling
-            "/graph?" + join("specs", val[0], ":")
+            "/graph?" + join("specs", val[0], "|")
             + "&start=" + encodeURIComponent(val[1])
             + "&end=" + encodeURIComponent(val[2])
             + "&floor=" + encodeURIComponent(val[3])

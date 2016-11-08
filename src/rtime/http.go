@@ -242,7 +242,7 @@ func graphAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, spec := range specs {
-		parts := strings.Split(spec, ":")
+		parts := strings.Split(spec, "|")
 		if len(parts) != 3 {
 			reject(w, "bad spec")
 			LOGGER.Error("bad_spec", "spec", spec, "specs", specs)
